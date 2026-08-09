@@ -117,6 +117,7 @@ export interface ImagenHolded {
   id: string
   position: number
   url: string
+  description: string | null
   sizes: Record<string, { url: string; width: number; height: number }> | null
 }
 
@@ -170,17 +171,23 @@ export async function crearContacto(datos: NuevoContacto): Promise<{ id: string 
 /**
  * Línea de pedido.
  *
- * Ojo con dos asimetrías de la API, comprobadas contra pedidos reales:
+ * Todo esto está comprobado creando un pedido real contra la API, no leyendo el
+ * esquema:
  *
  * 1. Al **escribir** el array se llama `items`; al **leer**, `lines`.
  * 2. `shipping` NO es un tipo de línea válido en la v2 (el enum sólo acepta
  *    `product`, `service` y `title`), al contrario de lo que decía el brief.
  *    El transporte va como línea de tipo `service`.
+ * 3. **`variant_id` se ignora al crear**: se envía y vuelve `null`. Aparece en el
+ *    modelo de lectura, pero no se puede fijar desde la API.
+ * 4. **El `sku` de la línea también se pisa** con el del producto padre: se envió
+ *    `PAN-COM-VER` y Holded guardó `PAN-`.
+ * 5. El pedido nace como **borrador y sin número**. El número se asigna al
+ *    aprobarlo (`POST /sales-orders/{id}/approve`).
+ * 6. Los guiones de los tags se eliminan: `tienda-web` se guarda `tiendaweb`.
  *
- * `variant_id` no aparece en el esquema del POST pero sí en el modelo de lectura,
- * así que se envía igualmente. Como red de seguridad, la variante viaja **además**
- * en `description` con el mismo formato que ya usa el equipo a mano ("S, Azul"):
- * aunque Holded ignorase el campo, el pedido sigue siendo legible en el panel.
+ * Consecuencia de 3 y 4: `description` es el **único** sitio donde sobrevive qué
+ * variante se ha pedido. Por eso lleva la etiqueta y además el SKU de la variante.
  */
 export interface LineaPedido {
   type: 'product' | 'service' | 'title'
@@ -209,6 +216,14 @@ export interface NuevoPedido {
 
 export async function crearPedido(datos: NuevoPedido): Promise<{ id: string }> {
   return peticion<{ id: string }>('/sales-orders', { metodo: 'POST', cuerpo: datos })
+}
+
+/**
+ * Aprueba un pedido: deja de ser borrador y recibe número de la serie
+ * (`PED-MAT-26-08`). Es irreversible en el sentido de que consume numeración.
+ */
+export async function aprobarPedido(id: string): Promise<void> {
+  await peticion(`/sales-orders/${id}/approve`, { metodo: 'POST' })
 }
 
 // ── Webhooks ─────────────────────────────────────────────────────────────────

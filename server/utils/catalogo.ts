@@ -14,6 +14,13 @@ export interface ImagenCatalogo {
   miniatura: string
   ancho: number
   alto: number
+  /**
+   * Descripción de la foto en Holded. Hoy está vacía en todo el catálogo, pero si
+   * se rellena con el nombre del color ("Granate"), la tarjeta cambia sola de foto
+   * al elegir ese color. Es la forma barata de tener foto por color sin duplicar
+   * productos: se escribe una palabra en Holded y el portal la aprovecha.
+   */
+  descripcion: string | null
 }
 
 export interface VarianteCatalogo {
@@ -45,6 +52,8 @@ export interface Catalogo {
   generadoEn: string
   /** Productos que no salen a la venta y por qué. Diagnóstico para el equipo. */
   excluidos: Array<{ nombre: string; motivo: string }>
+  /** Cosas raras que sí se muestran, por si son un descuido y no una decisión. */
+  avisos: string[]
   /**
    * True cuando ningún producto lleva los tags `b2b`/`b2c`. Mientras eso pase no se
    * puede filtrar por público, así que se muestra todo lo vendible y se avisa.
@@ -84,12 +93,15 @@ function mapearImagenes(
     .slice()
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
     .map((img) => {
-      const grande = img.sizes?.large ?? img.sizes?.original
+      // `medium` (600px) es el tamaño que se pinta en la tarjeta; `large` sólo
+      // haría descargar 1280px para mostrarlos a 320.
+      const principal = img.sizes?.medium ?? img.sizes?.large ?? img.sizes?.original
       return {
-        url: grande?.url ?? img.url,
+        url: principal?.url ?? img.url,
         miniatura: img.sizes?.small?.url ?? img.sizes?.thumbnail?.url ?? img.url,
-        ancho: grande?.width ?? 0,
-        alto: grande?.height ?? 0,
+        ancho: principal?.width ?? 0,
+        alto: principal?.height ?? 0,
+        descripcion: img.description?.trim() || null,
       }
     })
 }
@@ -123,12 +135,9 @@ async function construirCatalogo(): Promise<Catalogo> {
       excluidos.push({ nombre: p.name, motivo: 'marcado como no vendible' })
       continue
     }
-    const precio = aCentimos(p.price)
-    if (precio === null || precio === 0) {
-      // Sin precio no se puede vender: mejor no mostrarlo que mostrarlo a cero.
-      excluidos.push({ nombre: p.name, motivo: 'sin precio en la tarifa principal' })
-      continue
-    }
+    // Un producto sin tarifa principal, o con la tarifa a 0, se muestra como
+    // gratis: el equipo reparte cosas sin coste, sobre todo a particulares.
+    // Quien decide qué sale a la venta es el tag, no el precio.
     candidatos.push(p)
   }
 
@@ -181,14 +190,20 @@ async function construirCatalogo(): Promise<Catalogo> {
     }
   })
 
-  const sinEtiquetar = !productos.some(
-    (p) => p.tags.includes('b2b') || p.tags.includes('b2c'),
-  )
+  const sinEtiquetar = !productos.some((p) => p.tags.includes('b2b') || p.tags.includes('b2c'))
+
+  // Regalar algo puede ser intencionado o un precio que se quedó sin poner. El
+  // portal no adivina: lo muestra como gratis y lo dice aquí para que se revise.
+  const gratis = productos.filter((p) => p.precioCentimos === 0).map((p) => p.nombre)
+  const avisos = gratis.length
+    ? [`Se muestran como gratis por no tener tarifa principal: ${gratis.join(', ')}.`]
+    : []
 
   return {
     productos,
     generadoEn: new Date().toISOString(),
     excluidos,
+    avisos,
     sinEtiquetar,
   }
 }

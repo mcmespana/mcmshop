@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
     diagnostico: {
       sinEtiquetar: catalogo.sinEtiquetar,
       excluidos: catalogo.excluidos,
+      avisos: catalogo.avisos,
     },
   }
 })

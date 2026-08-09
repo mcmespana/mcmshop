@@ -22,6 +22,16 @@ export default defineNuxtConfig({
     webhookSecret: '',
     // Almacén del que se lee el stock. Vacío = suma de todos.
     warehouseId: '',
+    // Correo saliente.
+    resendApiKey: '',
+    correoRemitente: '',
+    correoEquipo: '',
+    /**
+     * Aprobar el pedido nada más crearlo le asigna número de serie y lo deja como
+     * los que hace el equipo a mano. Por defecto no, para que alguien revise
+     * antes: el formulario es público y la numeración no se recupera.
+     */
+    aprobarPedidos: false,
     public: {
       siteUrl: 'http://localhost:3000',
     },

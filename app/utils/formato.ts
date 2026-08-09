@@ -1,5 +1,6 @@
-/** Formatea céntimos como euros: 1234 → "12,34 €". */
+/** Formatea céntimos como euros: 1234 → "12,34 €". A cero se dice "Gratis". */
 export function formatearEuros(centimos: number): string {
+  if (centimos === 0) return 'Gratis'
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(
     centimos / 100,
   )

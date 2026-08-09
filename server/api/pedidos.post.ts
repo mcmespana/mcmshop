@@ -1,7 +1,15 @@
 import { z } from 'zod'
 import { obtenerCatalogo } from '../utils/catalogo'
+import { avisoEquipo, confirmacionCliente, type LineaCorreo } from '../utils/correo'
+import { limitarPeticiones } from '../utils/limite'
 import { aImporteHolded, formatearEuros } from '../utils/dinero'
-import { buscarContactoPorEmail, crearContacto, crearPedido, type LineaPedido } from '../utils/holded'
+import {
+  aprobarPedido,
+  buscarContactoPorEmail,
+  crearContacto,
+  crearPedido,
+  type LineaPedido,
+} from '../utils/holded'
 import { leerSesion } from '../utils/sesion'
 
 const esquema = z.object({
@@ -40,7 +48,21 @@ const TEXTO_TRANSPORTE = {
 } as const
 
 export default defineEventHandler(async (event) => {
-  const datos = esquema.parse(await readBody(event))
+  // Un pedido cada pocos minutos por IP es de sobra para el volumen real y evita
+  // que el formulario público se convierta en una manguera hacia el ERP.
+  await limitarPeticiones(event, { clave: 'pedidos', maximo: 5, ventanaSegundos: 300 })
+
+  // Un cuerpo mal formado es culpa de quien llama: 400, no 500. Y sin devolver el
+  // detalle de zod, que sólo sirve para que el cliente vea nombres de campos internos.
+  const validacion = esquema.safeParse(await readBody(event))
+  if (!validacion.success) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Faltan datos del pedido o el carrito está vacío. Revisa el formulario.',
+    })
+  }
+  const datos = validacion.data
+
   const almacen = useStorage('pedidos')
 
   // Un reintento tras un timeout no puede crear un segundo pedido en Holded.
@@ -52,6 +74,7 @@ export default defineEventHandler(async (event) => {
   const porId = new Map(catalogo.productos.map((p) => [p.id, p]))
 
   const lineas: LineaPedido[] = []
+  const lineasCorreo: LineaCorreo[] = []
   let total = 0
 
   for (const pedida of datos.lineas) {
@@ -80,15 +103,26 @@ export default defineEventHandler(async (event) => {
     lineas.push({
       type: 'product',
       product_id: producto.id,
-      // No documentado en el POST pero presente en el modelo de lectura.
+      // Se envía aunque esté comprobado que Holded lo ignora al crear, por si algún
+      // día lo admite. Lo que de verdad identifica la variante es `description`.
       ...(variante ? { variant_id: variante.id } : {}),
       name: producto.nombre,
-      // La variante viaja también en texto, como ya la escribe el equipo a mano.
-      ...(variante ? { description: variante.etiqueta } : {}),
+      // Único sitio donde sobrevive la variante: Holded descarta variant_id y pisa
+      // el sku de la línea con el del producto padre. Va la etiqueta legible y,
+      // detrás, el SKU real de la variante para que el equipo pueda buscarlo.
+      ...(variante
+        ? { description: [variante.etiqueta, variante.sku].filter(Boolean).join(' · ') }
+        : {}),
       units: pedida.cantidad,
       price: Number(aImporteHolded(precio)),
-      ...(variante?.sku ? { sku: variante.sku } : producto.sku ? { sku: producto.sku } : {}),
       taxes: [],
+    })
+
+    lineasCorreo.push({
+      nombre: producto.nombre,
+      variante: variante?.etiqueta ?? null,
+      cantidad: pedida.cantidad,
+      precioCentimos: precio,
     })
   }
 
@@ -160,7 +194,37 @@ export default defineEventHandler(async (event) => {
       : {}),
   })
 
+  // El pedido nace en borrador y sin número. Aprobarlo le asigna número de serie
+  // y lo deja igual que los que hace el equipo a mano, pero consume numeración,
+  // así que por defecto se deja en borrador para que alguien lo revise antes.
+  if (useRuntimeConfig().aprobarPedidos) {
+    try {
+      await aprobarPedido(pedido.id)
+    } catch {
+      // Si falla la aprobación el pedido ya existe: no se pierde nada y el equipo
+      // puede aprobarlo a mano. Tumbar aquí haría creer al cliente que no se hizo.
+    }
+  }
+
   await almacen.setItem(datos.claveIdempotencia, { id: pedido.id })
+
+  // Los correos van después de guardar la idempotencia y sin await bloqueante:
+  // el pedido ya existe y un fallo de Resend no puede convertirse en un error
+  // que empuje al cliente a reintentar.
+  const paraCorreo = {
+    cliente: { nombre: datos.cliente.nombre, email: datos.cliente.email },
+    lineas: lineasCorreo,
+    totalCentimos: total,
+    modo: datos.modo,
+    transporte: datos.transporte,
+    notas: datos.notas,
+  }
+  event.waitUntil(
+    Promise.allSettled([
+      confirmacionCliente(paraCorreo),
+      avisoEquipo({ ...paraCorreo, idPedido: pedido.id }),
+    ]),
+  )
 
   return { id: pedido.id, repetido: false, totalCentimos: total }
 })

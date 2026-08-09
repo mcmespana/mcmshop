@@ -21,7 +21,8 @@ function bajar() {
 const precio = computed(() => variante.value?.precioCentimos ?? props.producto.precioCentimos)
 const stock = computed(() => variante.value?.stock ?? props.producto.stock)
 const aviso = computed(() => textoStock(stock.value))
-const imagen = computed(() => props.producto.imagenes[0] ?? null)
+/** El color sale de la variante elegida; la galería lo usa para saltar a su foto. */
+const color = computed(() => variante.value?.opcion ?? null)
 
 let temporizador: ReturnType<typeof setTimeout> | undefined
 
@@ -41,19 +42,8 @@ onBeforeUnmount(() => clearTimeout(temporizador))
   <article
     class="group flex flex-col overflow-hidden rounded-tarjeta border border-borde bg-lienzo-alto transition hover:border-tinta-suave/40"
   >
-    <div class="relative aspect-square overflow-hidden bg-lienzo">
-      <NuxtImg
-        v-if="imagen"
-        :src="imagen.url"
-        :alt="producto.nombre"
-        loading="lazy"
-        format="webp"
-        sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 320px"
-        class="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
-      />
-      <div v-else class="flex size-full items-center justify-center text-tinta-suave">
-        <span class="text-sm">Sin foto</span>
-      </div>
+    <div class="relative">
+      <GaleriaProducto :imagenes="producto.imagenes" :alt="producto.nombre" :color="color" />
 
       <span
         v-if="aviso"

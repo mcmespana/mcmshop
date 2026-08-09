@@ -6,34 +6,49 @@ const seleccion = defineModel<VarianteCatalogo | null>({ required: true })
 
 /**
  * Tres formas de variar, según lo que haya en Holded:
- *   mixto  → camisetas: color y talla, dos filas de selección
+ *   mixto  → camisetas: color y talla, dos filas
  *   talla  → sudaderas: una fila de tallas
- *   opcion → pañuelos: una fila de colores/tipos
+ *   opcion → pañuelos: una fila de tipos
+ *
+ * Las camisetas pueden llegar a tener muchos colores, así que cuando todos son
+ * colores reconocibles la fila pasa a muestras redondas sin texto: aguanta
+ * veinte colores sin romper la tarjeta. El nombre del elegido se lee arriba.
  */
-const colores = computed(() => {
+interface GrupoColor {
+  nombre: string
+  variantes: VarianteCatalogo[]
+  stock: number
+  muestra: string | null
+}
+
+const colores = computed<GrupoColor[]>(() => {
   if (props.producto.eje !== 'mixto') return []
-  const vistos = new Map<string, VarianteCatalogo[]>()
+  const grupos = new Map<string, VarianteCatalogo[]>()
   for (const v of props.producto.variantes) {
     const clave = v.opcion ?? '—'
-    if (!vistos.has(clave)) vistos.set(clave, [])
-    vistos.get(clave)!.push(v)
+    if (!grupos.has(clave)) grupos.set(clave, [])
+    grupos.get(clave)!.push(v)
   }
-  return [...vistos.entries()].map(([nombre, variantes]) => ({
+  return [...grupos.entries()].map(([nombre, variantes]) => ({
     nombre,
     variantes,
     stock: variantes.reduce((s, v) => s + Math.max(v.stock, 0), 0),
+    muestra: muestraDeColor(nombre),
   }))
 })
 
+/** Sólo se usan muestras si TODOS los colores se reconocen; mezclar queda sucio. */
+const modoMuestra = computed(
+  () => colores.value.length > 0 && colores.value.every((c) => c.muestra !== null),
+)
+
 const colorElegido = ref<string | null>(null)
 
-// Se arranca por el primer color que tenga algo en el armario, no por el primero a secas.
 watchEffect(() => {
   if (props.producto.eje !== 'mixto' || colorElegido.value !== null) return
   colorElegido.value = (colores.value.find((c) => c.stock > 0) ?? colores.value[0])?.nombre ?? null
 })
 
-/** Opciones de la fila principal: tallas del color elegido, o las variantes tal cual. */
 const opciones = computed<VarianteCatalogo[]>(() => {
   if (props.producto.eje === 'mixto') {
     return colores.value.find((c) => c.nombre === colorElegido.value)?.variantes ?? []
@@ -41,7 +56,8 @@ const opciones = computed<VarianteCatalogo[]>(() => {
   return props.producto.variantes
 })
 
-// Al cambiar de color se conserva la talla si ese color la tiene; si no, se elige otra.
+// Al cambiar de color se conserva la talla si ese color la tiene. Es lo que
+// espera quien está comparando colores en su talla, y evita perder la elección.
 watch(
   opciones,
   (lista) => {
@@ -62,64 +78,89 @@ watch(
   { immediate: true },
 )
 
-function elegirColor(nombre: string) {
-  colorElegido.value = nombre
+const etiquetaFila = computed(() =>
+  props.producto.eje === 'talla' || props.producto.eje === 'mixto' ? 'Talla' : 'Opción',
+)
+
+function textoOpcion(v: VarianteCatalogo): string {
+  return props.producto.eje === 'opcion' ? v.etiqueta : (v.talla ?? v.etiqueta)
 }
 
-const etiquetaFila = computed(() => {
-  if (props.producto.eje === 'talla' || props.producto.eje === 'mixto') return 'Talla'
-  return 'Opción'
-})
-
-/** En la fila de tallas basta con la letra; en la de opciones, el texto entero. */
-function textoOpcion(v: VarianteCatalogo): string {
-  if (props.producto.eje === 'mixto' || props.producto.eje === 'talla') {
-    return v.talla ?? v.etiqueta
-  }
-  return v.etiqueta
+function rotuloColor(c: GrupoColor): string {
+  return c.stock > 0 ? c.nombre : `${c.nombre} — sin stock`
 }
 </script>
 
 <template>
   <div v-if="producto.variantes.length > 0" class="space-y-3">
-    <!-- Fila de color, sólo cuando hay color y talla a la vez -->
+    <!-- Colores -->
     <div v-if="producto.eje === 'mixto'">
-      <p class="mb-1.5 text-xs font-medium text-tinta-suave">Color</p>
-      <div class="flex flex-wrap gap-1.5">
+      <div class="mb-1.5 flex items-baseline justify-between gap-2">
+        <p class="text-xs font-medium text-tinta-suave">Color</p>
+        <p class="truncate text-xs text-tinta">{{ colorElegido }}</p>
+      </div>
+
+      <!-- Muchos colores: muestras redondas, el nombre se lee arriba -->
+      <div v-if="modoMuestra" class="flex flex-wrap gap-2">
+        <button
+          v-for="color in colores"
+          :key="color.nombre"
+          type="button"
+          :aria-label="rotuloColor(color)"
+          :aria-pressed="colorElegido === color.nombre"
+          :title="rotuloColor(color)"
+          class="relative size-7 rounded-full transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+          :class="
+            colorElegido === color.nombre
+              ? 'ring-2 ring-acento ring-offset-2 ring-offset-lienzo-alto'
+              : 'ring-1 ring-black/10 hover:ring-tinta-suave'
+          "
+          :style="{ backgroundColor: color.muestra! }"
+          @click="colorElegido = color.nombre"
+        >
+          <!-- Sin stock: aspa fina encima, sin ocultar el color -->
+          <svg
+            v-if="color.stock <= 0"
+            viewBox="0 0 24 24"
+            class="absolute inset-0 size-full text-white/90 mix-blend-difference"
+            aria-hidden="true"
+          >
+            <line x1="4" y1="20" x2="20" y2="4" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Colores que no son colores ("MIC", "CONOC. I"): texto -->
+      <div v-else class="flex flex-wrap gap-1.5">
         <button
           v-for="color in colores"
           :key="color.nombre"
           type="button"
           :aria-pressed="colorElegido === color.nombre"
-          :title="color.stock > 0 ? color.nombre : `${color.nombre} — sin stock`"
-          class="group flex items-center gap-1.5 rounded-full border py-1 pr-2.5 pl-1 text-xs transition"
-          :class="
+          :title="rotuloColor(color)"
+          class="rounded-full border px-2.5 py-1 text-xs transition"
+          :class="[
             colorElegido === color.nombre
               ? 'border-acento bg-acento/10 font-medium text-acento-alto'
-              : 'border-borde text-tinta-suave hover:border-tinta-suave'
-          "
-          @click="elegirColor(color.nombre)"
+              : 'border-borde text-tinta-suave hover:border-tinta-suave',
+            color.stock <= 0 ? 'line-through decoration-from-font' : '',
+          ]"
+          @click="colorElegido = color.nombre"
         >
-          <span
-            v-if="muestraDeColor(color.nombre)"
-            class="size-4 rounded-full"
-            :style="{
-              backgroundColor: muestraDeColor(color.nombre)!,
-              boxShadow: necesitaBorde(muestraDeColor(color.nombre)!)
-                ? 'inset 0 0 0 1px rgb(0 0 0 / 0.15)'
-                : undefined,
-            }"
-          />
-          <span :class="color.stock <= 0 ? 'line-through decoration-from-font' : ''">
-            {{ color.nombre }}
-          </span>
+          {{ color.nombre }}
         </button>
       </div>
     </div>
 
-    <!-- Fila principal: tallas u opciones -->
+    <!-- Tallas u opciones -->
     <div>
-      <p class="mb-1.5 text-xs font-medium text-tinta-suave">{{ etiquetaFila }}</p>
+      <div class="mb-1.5 flex items-baseline justify-between gap-2">
+        <p class="text-xs font-medium text-tinta-suave">{{ etiquetaFila }}</p>
+        <p v-if="seleccion && seleccion.stock > 0 && seleccion.stock <= 5" class="text-xs text-tinta-suave">
+          quedan {{ seleccion.stock }}
+        </p>
+      </div>
+
       <div class="flex flex-wrap gap-1.5">
         <button
           v-for="opcion in opciones"
@@ -141,8 +182,6 @@ function textoOpcion(v: VarianteCatalogo): string {
       </div>
     </div>
 
-    <p v-if="seleccion?.nota" class="text-xs text-tinta-suave italic">
-      {{ seleccion.nota }}
-    </p>
+    <p v-if="seleccion?.nota" class="text-xs text-tinta-suave italic">{{ seleccion.nota }}</p>
   </div>
 </template>

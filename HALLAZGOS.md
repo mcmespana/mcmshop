@@ -162,7 +162,29 @@ Comprobado contra los 7 pedidos históricos reales, no sólo contra el esquema.
 3. **`price` es numérico** en la petición, aunque en las respuestas venga como cadena
    con coma decimal.
 
-### `variant_id` existe, pero no está documentado
+### Comprobado creando un pedido real
+
+Se creó un pedido de prueba con la API y se inspeccionó el resultado. Cuatro cosas
+que sólo se ven ejecutándolo:
+
+| Qué se envió | Qué guardó Holded |
+|---|---|
+| `variant_id: "67a5058b…213c"` | **`null`** — se ignora al crear |
+| `sku: "PAN-COM-VER"` (de la variante) | **`"PAN-"`** — lo pisa con el SKU del producto padre |
+| `tags: ["tienda-web"]` | `"tiendaweb"` — elimina los guiones |
+| (nada) | `draft: true`, `document_number: null` |
+
+Las dos primeras son la consecuencia importante: **`description` es el único campo
+donde sobrevive qué variante se ha pedido.** Por eso la línea lleva la etiqueta
+legible y detrás el SKU real de la variante (`"COM Verde · PAN-COM-VER"`).
+
+Lo cuarto: el pedido nace en borrador y sin número, mientras que los que hace el
+equipo a mano están aprobados con número (`PED-MAT-26-06`). El número se asigna con
+`POST /sales-orders/{id}/approve`. El portal lo deja en borrador por defecto —el
+formulario es público y la numeración consumida no se recupera— y se puede cambiar
+con `NUXT_APROBAR_PEDIDOS=true`.
+
+### `variant_id` existe al leer, pero no se puede escribir
 
 El esquema del POST no lo incluye; el modelo de lectura sí lo trae poblado:
 
@@ -178,11 +200,17 @@ El esquema del POST no lo incluye; el modelo de lectura sí lo trae poblado:
 }
 ```
 
-Se enviará igualmente. Y como red de seguridad, la variante viaja **además** en
-`description`, con el mismo formato que el equipo ya escribe a mano (`"S, Azul"`):
-si Holded ignorase el campo, el pedido seguiría siendo perfectamente legible en el
-panel. Esto importa porque el `sku` no es identificador único (las 6 Sudaderas LC
-comparten `SUD-LC`), así que no se puede depender de él para resolver la variante.
+Se envía igualmente por si algún día lo admite, pero no se depende de él. Tampoco
+se puede depender del `sku`: además de que Holded lo sobrescribe, no es
+identificador único (las 6 Sudaderas LC comparten `SUD-LC`).
+
+### Foto por color, sin duplicar productos
+
+Las imágenes tienen un campo `description` que hoy está vacío en las 27 fotos del
+catálogo. El portal ya lee ese campo: **si se escribe ahí el nombre del color
+("Granate"), la tarjeta cambia sola a esa foto al elegir ese color.** Mientras esté
+vacío, la galería funciona como una galería normal. Es la forma barata de tener
+foto por color: se escribe una palabra en Holded, sin tocar código.
 
 ### El equipo ya etiqueta los pedidos
 
