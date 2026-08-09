@@ -32,6 +32,12 @@ export default defineNuxtConfig({
      * antes: el formulario es público y la numeración no se recupera.
      */
     aprobarPedidos: false,
+    /**
+     * Se salta el filtro por tag `b2b`/`b2c` y muestra todo el catálogo. Sólo para
+     * probar antes de haber etiquetado nada en Holded: en producción va a false,
+     * porque que un producto salga a la venta debe ser una decisión explícita.
+     */
+    catalogoSinFiltro: false,
     public: {
       siteUrl: 'http://localhost:3000',
     },

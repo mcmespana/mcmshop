@@ -190,7 +190,9 @@ async function construirCatalogo(): Promise<Catalogo> {
     }
   })
 
-  const sinEtiquetar = !productos.some((p) => p.tags.includes('b2b') || p.tags.includes('b2c'))
+  const etiquetado = (p: ProductoCatalogo) =>
+    p.tags.some((t) => ['b2b', 'b2c'].includes(t.trim().toLowerCase()))
+  const sinEtiquetar = !productos.some(etiquetado)
 
   // Regalar algo puede ser intencionado o un precio que se quedó sin poner. El
   // portal no adivina: lo muestra como gratis y lo dice aquí para que se revise.
@@ -224,10 +226,21 @@ export const obtenerCatalogo = defineCachedFunction(construirCatalogo, {
 /**
  * Filtra por público. El criterio vive en Holded (tags `b2b` / `b2c`), así que sacar
  * un producto nuevo no requiere tocar código.
- * Mientras no haya ni un solo producto etiquetado se muestra todo lo vendible: es
- * preferible una tienda que funciona con un aviso a una tienda vacía sin explicación.
+ *
+ * Sin tag no se ve: un producto que nadie ha etiquetado no sale a ninguna de las dos
+ * tiendas. Es lo correcto para producción — que algo aparezca a la venta tiene que ser
+ * una decisión explícita, no lo que pasa por defecto.
+ *
+ * La comparación ignora mayúsculas y espacios, para que `B2B`, `b2b` y ` B2B ` valgan
+ * igual: quien etiqueta en Holded no debería tener que acordarse de eso.
+ *
+ * Para probar sin haber etiquetado nada, `NUXT_CATALOGO_SIN_FILTRO=true` se salta la
+ * comprobación y muestra todo.
  */
 export function filtrarPorModo(catalogo: Catalogo, modo: Modo): ProductoCatalogo[] {
-  if (catalogo.sinEtiquetar) return catalogo.productos
-  return catalogo.productos.filter((p) => p.tags.includes(modo))
+  if (useRuntimeConfig().catalogoSinFiltro) return catalogo.productos
+
+  return catalogo.productos.filter((p) =>
+    p.tags.some((tag) => tag.trim().toLowerCase() === modo),
+  )
 }

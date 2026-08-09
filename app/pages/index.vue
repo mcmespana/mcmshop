@@ -69,14 +69,7 @@ useSeoMeta({
           </div>
         </div>
 
-        <!-- Aviso de configuración, sólo mientras el catálogo no esté etiquetado -->
-        <p
-          v-if="data?.diagnostico.sinEtiquetar"
-          class="mb-5 rounded-lg border border-borde bg-lienzo-alto px-3.5 py-2.5 text-xs text-tinta-suave"
-        >
-          Ningún producto tiene todavía las etiquetas <code>b2b</code> / <code>b2c</code> en Holded,
-          así que se muestra el catálogo completo a los dos públicos.
-        </p>
+        <AvisoModo />
 
         <div v-if="status === 'pending'" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div
@@ -93,12 +86,18 @@ useSeoMeta({
           <p class="font-medium">
             {{ busqueda ? 'No hay nada con ese nombre' : 'Todavía no hay nada por aquí' }}
           </p>
-          <p class="mt-1 text-sm text-tinta-suave">
-            {{
-              busqueda
-                ? 'Prueba con otra palabra.'
-                : 'En cuanto haya productos con precio en Holded, aparecerán aquí.'
-            }}
+          <p class="mx-auto mt-1 max-w-md text-sm text-tinta-suave">
+            <template v-if="busqueda">Prueba con otra palabra.</template>
+            <!-- Aviso de configuración: al equipo, no al cliente. Que quede claro
+                 que la tienda funciona y lo que falta es etiquetar en Holded. -->
+            <template v-else-if="data?.diagnostico.sinEtiquetar">
+              Ningún producto está etiquetado todavía como <code>b2b</code> o <code>b2c</code> en
+              Holded, así que no sale ninguno. En cuanto etiquetéis uno, aparece aquí.
+            </template>
+            <template v-else>
+              Ahora mismo no hay nada disponible para
+              {{ modo === 'b2b' ? 'delegaciones' : 'pedidos personales' }}.
+            </template>
           </p>
         </div>
 

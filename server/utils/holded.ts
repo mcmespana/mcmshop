@@ -226,6 +226,71 @@ export async function aprobarPedido(id: string): Promise<void> {
   await peticion(`/sales-orders/${id}/approve`, { metodo: 'POST' })
 }
 
+/** Estados que devuelve Holded para un pedido de venta. */
+export type EstadoPedido =
+  | 'pending'
+  | 'completed'
+  | 'partial'
+  | 'cancelled'
+  | 'failed'
+  | 'overdue'
+
+export interface LineaLeida {
+  name: string
+  description: string | null
+  type: string
+  units: string
+  price: string
+  sku: string | null
+}
+
+export interface PedidoLeido {
+  id: string
+  document_number: string | null
+  contact_id: string
+  date: string | null
+  status: EstadoPedido | null
+  draft: boolean
+  approved_at: string | null
+  total: string
+  subtotal: string
+  tax: string
+  /** Ojo: `shipping` no es un importe, es el modo de dirección ("billing"). */
+  tracking_name: string | null
+  tracking_number: string | null
+  delivery_date: string | null
+  description: string | null
+  /** Al leer las líneas se llaman `lines`; al escribirlas, `items`. */
+  lines: LineaLeida[] | null
+}
+
+/** Pedidos de un contacto, del más reciente al más antiguo. */
+export async function listarPedidosDeContacto(
+  contactoId: string,
+  limite = 50,
+): Promise<PedidoLeido[]> {
+  const datos = await peticion<{ items: PedidoLeido[] }>('/sales-orders', {
+    consulta: { contact_id: contactoId, limit: limite, sort: '-date' },
+  })
+  return datos.items ?? []
+}
+
+export function obtenerPedido(id: string): Promise<PedidoLeido> {
+  return peticion<PedidoLeido>(`/sales-orders/${id}`)
+}
+
+/** Descarga el PDF del pedido. Devuelve el binario tal cual lo da Holded. */
+export async function descargarPdfPedido(id: string): Promise<ArrayBuffer> {
+  const { holdedApiKey } = useRuntimeConfig()
+  const respuesta = await fetch(`${BASE}/sales-orders/${id}/pdf`, {
+    headers: { Authorization: `Bearer ${holdedApiKey}` },
+  })
+  if (!respuesta.ok) {
+    throw new ErrorHolded(respuesta.status, `/sales-orders/${id}/pdf`, '')
+  }
+  return respuesta.arrayBuffer()
+}
+
 // ── Webhooks ─────────────────────────────────────────────────────────────────
 
 export function crearWebhook(datos: {
