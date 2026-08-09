@@ -51,6 +51,12 @@ body {
   @apply font-sans antialiased;
 }
 
+/* Los controles nativos salen en azul de sistema si no se les dice otra cosa. */
+input[type='radio'],
+input[type='checkbox'] {
+  accent-color: var(--color-acento);
+}
+
 /* El carrito es una barra inferior en móvil: que no tape el último producto. */
 @media (max-width: 1023px) {
   body {
