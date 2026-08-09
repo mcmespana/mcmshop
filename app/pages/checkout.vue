@@ -1,0 +1,279 @@
+<script setup lang="ts">
+const { lineas, totalCentimos, unidades, vacio, vaciar } = useCarrito()
+const { modo, cambiar } = useModo()
+
+const { data: sesion } = await useFetch('/api/sesion')
+
+const formulario = reactive({
+  email: '',
+  nombre: '',
+  telefono: '',
+  cif: '',
+  direccion: '',
+  poblacion: '',
+  provincia: '',
+  codigoPostal: '',
+  personaContacto: '',
+  notas: '',
+  transporte: 'consolacion' as 'consolacion' | 'mensajeria',
+})
+
+// Si hay sesión de Google, los datos vienen precargados.
+watchEffect(() => {
+  if (!sesion.value?.autenticado) return
+  formulario.email ||= sesion.value.email
+  formulario.nombre ||= sesion.value.nombre ?? ''
+  if (sesion.value.esDelegacion) cambiar('b2b')
+})
+
+const enviando = ref(false)
+const error = ref<string | null>(null)
+const pedidoHecho = ref(false)
+
+// Se genera una vez por carrito: si la petición se corta y se reintenta, Holded
+// no acaba con dos pedidos iguales.
+const claveIdempotencia = ref(crypto.randomUUID())
+
+async function enviar() {
+  if (enviando.value) return
+  enviando.value = true
+  error.value = null
+
+  try {
+    await $fetch('/api/pedidos', {
+      method: 'POST',
+      body: {
+        claveIdempotencia: claveIdempotencia.value,
+        modo: modo.value,
+        transporte: formulario.transporte,
+        lineas: lineas.value.map((l) => ({
+          productoId: l.productoId,
+          varianteId: l.varianteId,
+          cantidad: l.cantidad,
+        })),
+        cliente: {
+          email: formulario.email,
+          nombre: formulario.nombre,
+          telefono: formulario.telefono || undefined,
+          cif: formulario.cif || undefined,
+          direccion: formulario.direccion || undefined,
+          poblacion: formulario.poblacion || undefined,
+          provincia: formulario.provincia || undefined,
+          codigoPostal: formulario.codigoPostal || undefined,
+        },
+        personaContacto: formulario.personaContacto || undefined,
+        notas: formulario.notas || undefined,
+      },
+    })
+    pedidoHecho.value = true
+    vaciar()
+  } catch (e) {
+    const mensaje = (e as { statusMessage?: string })?.statusMessage
+    error.value = mensaje ?? 'No hemos podido registrar el pedido. Inténtalo en un momento.'
+  } finally {
+    enviando.value = false
+  }
+}
+
+useSeoMeta({ title: 'Finalizar pedido' })
+</script>
+
+<template>
+  <main class="mx-auto max-w-3xl px-4 py-8">
+    <!-- Confirmación -->
+    <div v-if="pedidoHecho" class="rounded-tarjeta border border-borde bg-lienzo-alto p-8">
+      <h1 class="text-xl font-semibold">Pedido recibido</h1>
+      <p class="mt-2 text-sm text-tinta-suave">
+        Te hemos apuntado el pedido. Te escribimos al correo con los datos para pagar y, si has
+        elegido mensajería, con el coste del envío antes de mandar nada.
+      </p>
+      <NuxtLink
+        to="/"
+        class="mt-6 inline-block rounded-lg bg-acento px-4 py-2.5 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto"
+      >
+        Volver al catálogo
+      </NuxtLink>
+    </div>
+
+    <div v-else-if="vacio" class="rounded-tarjeta border border-borde bg-lienzo-alto p-8 text-center">
+      <p class="font-medium">Tu carrito está vacío</p>
+      <NuxtLink to="/" class="mt-3 inline-block text-sm text-acento underline underline-offset-2">
+        Ir al catálogo
+      </NuxtLink>
+    </div>
+
+    <form v-else class="space-y-6" @submit.prevent="enviar">
+      <div>
+        <h1 class="text-xl font-semibold">Finalizar pedido</h1>
+        <p class="mt-1 text-sm text-tinta-suave">
+          {{ unidades }} {{ unidades === 1 ? 'unidad' : 'unidades' }} ·
+          {{ formatearEuros(totalCentimos) }}
+        </p>
+      </div>
+
+      <!-- Login opcional: se invita, no se obliga -->
+      <div
+        v-if="!sesion?.autenticado"
+        class="flex flex-wrap items-center gap-3 rounded-tarjeta border border-borde bg-lienzo-alto px-4 py-3"
+      >
+        <p class="flex-1 text-sm text-tinta-suave">
+          Si entras con Google te rellenamos los datos y podrás ver tus pedidos anteriores.
+        </p>
+        <a
+          href="/auth/google?destino=/checkout"
+          class="rounded-lg border border-borde px-3 py-1.5 text-sm font-medium transition hover:border-tinta-suave"
+        >
+          Entrar con Google
+        </a>
+      </div>
+
+      <section class="space-y-3 rounded-tarjeta border border-borde bg-lienzo-alto p-4">
+        <h2 class="font-medium">Tus datos</h2>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-1 block text-xs text-tinta-suave">Correo electrónico</span>
+            <input
+              v-model="formulario.email"
+              type="email"
+              required
+              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+            />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs text-tinta-suave">
+              {{ modo === 'b2b' ? 'Nombre de la delegación' : 'Nombre y apellidos' }}
+            </span>
+            <input
+              v-model="formulario.nombre"
+              type="text"
+              required
+              minlength="2"
+              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+            />
+          </label>
+
+          <label v-if="modo === 'b2b'" class="block">
+            <span class="mb-1 block text-xs text-tinta-suave">Persona de contacto</span>
+            <input
+              v-model="formulario.personaContacto"
+              type="text"
+              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+            />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs text-tinta-suave">Teléfono</span>
+            <input
+              v-model="formulario.telefono"
+              type="tel"
+              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+            />
+          </label>
+
+          <label class="block sm:col-span-2">
+            <span class="mb-1 block text-xs text-tinta-suave">Dirección de envío</span>
+            <input
+              v-model="formulario.direccion"
+              type="text"
+              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+            />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs text-tinta-suave">Población</span>
+            <input
+              v-model="formulario.poblacion"
+              type="text"
+              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+            />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs text-tinta-suave">Código postal</span>
+            <input
+              v-model="formulario.codigoPostal"
+              type="text"
+              inputmode="numeric"
+              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section class="space-y-3 rounded-tarjeta border border-borde bg-lienzo-alto p-4">
+        <h2 class="font-medium">Cómo te lo hacemos llegar</h2>
+
+        <label
+          class="flex cursor-pointer gap-3 rounded-lg border p-3 transition"
+          :class="
+            formulario.transporte === 'consolacion' ? 'border-acento bg-acento/5' : 'border-borde'
+          "
+        >
+          <input v-model="formulario.transporte" type="radio" value="consolacion" class="mt-1" />
+          <span>
+            <span class="block text-sm font-medium">Transporte Consolación · gratis</span>
+            <span class="block text-xs text-tinta-suave">
+              Te llegará cuando alguien de la Familia Consolación vaya para allá.
+            </span>
+          </span>
+        </label>
+
+        <!--
+          Nunca se muestra un precio de mensajería: no se sabe de antemano y no se
+          inventa. Explicar por qué es lo que hace que se sienta honesto.
+        -->
+        <label
+          class="flex cursor-pointer gap-3 rounded-lg border p-3 transition"
+          :class="
+            formulario.transporte === 'mensajeria' ? 'border-acento bg-acento/5' : 'border-borde'
+          "
+        >
+          <input v-model="formulario.transporte" type="radio" value="mensajeria" class="mt-1" />
+          <span>
+            <span class="block text-sm font-medium">Mensajería urgente</span>
+            <span class="block text-xs text-tinta-suave">
+              Te lo enviamos por agencia. El coste depende del destino y del peso; te lo
+              confirmamos por correo antes de enviar nada.
+            </span>
+          </span>
+        </label>
+      </section>
+
+      <section class="space-y-3 rounded-tarjeta border border-borde bg-lienzo-alto p-4">
+        <h2 class="font-medium">Pago</h2>
+        <p class="text-sm text-tinta-suave">
+          <template v-if="modo === 'b2b'">
+            Por transferencia. Apuntamos el pedido y te mandamos el IBAN y la referencia por correo.
+          </template>
+          <template v-else>
+            Con Bizum ONG. Apuntamos el pedido y te mandamos el código y las instrucciones por
+            correo.
+          </template>
+        </p>
+
+        <label class="block">
+          <span class="mb-1 block text-xs text-tinta-suave">¿Nos quieres decir algo más?</span>
+          <textarea
+            v-model="formulario.notas"
+            rows="2"
+            class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+          />
+        </label>
+      </section>
+
+      <p v-if="error" class="rounded-lg bg-aviso/10 px-3.5 py-2.5 text-sm text-aviso">
+        {{ error }}
+      </p>
+
+      <button
+        type="submit"
+        :disabled="enviando"
+        class="w-full rounded-lg bg-acento py-3 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto disabled:opacity-60"
+      >
+        {{ enviando ? 'Enviando…' : `Confirmar pedido · ${formatearEuros(totalCentimos)}` }}
+      </button>
+    </form>
+  </main>
+</template>

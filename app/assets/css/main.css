@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+/*
+  El catálogo son fotos de camisetas turquesa, granate, morado, azul royal...
+  La cromática la ponen los productos, así que el cromo de la interfaz se
+  mantiene neutro a propósito y sólo hay un color de acción.
+
+  Ojo: en Tailwind 4 `@theme` sólo vale en el nivel superior. El modo oscuro se
+  hace redefiniendo las variables en `:root` dentro del media query, no metiendo
+  otro `@theme` dentro (eso acaba aplicándose siempre y deja la web oscura).
+*/
+@theme {
+  --color-lienzo: oklch(0.985 0.004 85);
+  --color-lienzo-alto: oklch(1 0 0);
+  --color-borde: oklch(0.905 0.006 85);
+  --color-tinta: oklch(0.22 0.012 65);
+  --color-tinta-suave: oklch(0.52 0.012 65);
+  --color-acento: oklch(0.46 0.09 165);
+  --color-acento-alto: oklch(0.4 0.095 165);
+  /* Texto que va encima del acento. En claro el acento es oscuro y pide blanco;
+     en oscuro se aclara y pediría tinta, así que es un token, no un `text-white`. */
+  --color-sobre-acento: oklch(1 0 0);
+  --color-aviso: oklch(0.55 0.16 35);
+
+  --font-sans: 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-tarjeta: 0.875rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-lienzo: oklch(0.19 0.008 65);
+    --color-lienzo-alto: oklch(0.23 0.009 65);
+    --color-borde: oklch(0.32 0.01 65);
+    --color-tinta: oklch(0.95 0.005 85);
+    --color-tinta-suave: oklch(0.72 0.01 75);
+    --color-acento: oklch(0.72 0.1 165);
+    --color-acento-alto: oklch(0.8 0.1 165);
+    --color-sobre-acento: oklch(0.19 0.02 165);
+    --color-aviso: oklch(0.75 0.14 45);
+  }
+}
+
+html {
+  background-color: var(--color-lienzo);
+  color: var(--color-tinta);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply font-sans antialiased;
+}
+
+/* Los controles nativos salen en azul de sistema si no se les dice otra cosa. */
+input[type='radio'],
+input[type='checkbox'] {
+  accent-color: var(--color-acento);
+}
+
+/* El carrito es una barra inferior en móvil: que no tape el último producto. */
+@media (max-width: 1023px) {
+  body {
+    padding-bottom: 5.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
