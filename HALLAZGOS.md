@@ -145,6 +145,57 @@ esa separación contable**. Alternativa recomendada: etiquetar el pedido con un 
 con `last: 7`. Es decir, 7 pedidos de venta históricos: el volumen es pequeño y una serie
 propia para el portal deja el histórico limpio desde el día uno.
 
+## Pedidos: cómo se escriben las líneas
+
+Comprobado contra los 7 pedidos históricos reales, no sólo contra el esquema.
+
+### Tres correcciones al brief
+
+1. **El array de líneas se llama `items` al escribir y `lines` al leer.** La misma
+   entidad, dos nombres según la dirección. Fácil de no ver hasta que falla.
+
+2. **`shipping` no es un tipo de línea válido.** El brief afirmaba lo contrario
+   ("es un tipo de línea nativo, corrige una decisión anterior"). En la v2 el enum de
+   `type` acepta sólo `product`, `service` y `title` — en pedidos, facturas,
+   presupuestos y albaranes por igual. El transporte tiene que ir como `service`.
+
+3. **`price` es numérico** en la petición, aunque en las respuestas venga como cadena
+   con coma decimal.
+
+### `variant_id` existe, pero no está documentado
+
+El esquema del POST no lo incluye; el modelo de lectura sí lo trae poblado:
+
+```json
+{
+  "name": "Sudaderas M+C",
+  "description": "S, Azul",
+  "product_id": "67a639e257b175f81d0e2776",
+  "variant_id": "67a639e257b175f81d0e2778",
+  "sku": "SUD-MC-S",
+  "units": "3,00",
+  "price": "12,00"
+}
+```
+
+Se enviará igualmente. Y como red de seguridad, la variante viaja **además** en
+`description`, con el mismo formato que el equipo ya escribe a mano (`"S, Azul"`):
+si Holded ignorase el campo, el pedido seguiría siendo perfectamente legible en el
+panel. Esto importa porque el `sku` no es identificador único (las 6 Sudaderas LC
+comparten `SUD-LC`), así que no se puede depender de él para resolver la variante.
+
+### El equipo ya etiqueta los pedidos
+
+Los pedidos existentes llevan tags como `mcmlocal` y `sudaderasmc`, tanto en el
+documento como en cada línea. Marcar los pedidos del portal con un tag propio
+(`tienda-web`) encaja con lo que ya se hace y evita tocar `sales_channel_id`, que
+está reservado a la cuenta contable.
+
+### Confirmado: no se aplica IVA
+
+Los pedidos reales tienen `tax: "0"` y `taxes: []`, igual que el catálogo. El portal
+enviará las líneas sin impuestos, salvo indicación contraria.
+
 ## Webhooks
 
 `POST /api/v2/webhooks` con `{ url, events[], version, description }`. Eventos confirmados

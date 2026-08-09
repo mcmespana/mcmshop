@@ -1,0 +1,226 @@
+/**
+ * Cliente de la API v2 de Holded.
+ *
+ * Holded es la única fuente de verdad del proyecto: catálogo, stock, contactos y
+ * pedidos. Aquí sólo hay transporte y tipos; el modelo de dominio se arma en
+ * `catalogo.ts`.
+ */
+
+const BASE = 'https://api.holded.com/api/v2'
+
+export class ErrorHolded extends Error {
+  constructor(
+    readonly estado: number,
+    readonly ruta: string,
+    readonly cuerpo: string,
+  ) {
+    super(`Holded ${estado} en ${ruta}: ${cuerpo.slice(0, 300)}`)
+    this.name = 'ErrorHolded'
+  }
+}
+
+interface OpcionesPeticion {
+  metodo?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  consulta?: Record<string, string | number | undefined>
+  cuerpo?: unknown
+}
+
+async function peticion<T>(ruta: string, opciones: OpcionesPeticion = {}): Promise<T> {
+  const { holdedApiKey } = useRuntimeConfig()
+  if (!holdedApiKey) {
+    throw new Error('Falta HOLDED_API_KEY: el portal no puede hablar con Holded.')
+  }
+
+  const url = new URL(BASE + ruta)
+  for (const [clave, valor] of Object.entries(opciones.consulta ?? {})) {
+    if (valor !== undefined) url.searchParams.set(clave, String(valor))
+  }
+
+  const respuesta = await fetch(url, {
+    method: opciones.metodo ?? 'GET',
+    headers: {
+      Authorization: `Bearer ${holdedApiKey}`,
+      Accept: 'application/json',
+      ...(opciones.cuerpo ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: opciones.cuerpo ? JSON.stringify(opciones.cuerpo) : undefined,
+  })
+
+  if (!respuesta.ok) {
+    throw new ErrorHolded(respuesta.status, ruta, await respuesta.text().catch(() => ''))
+  }
+  return (await respuesta.json()) as T
+}
+
+/**
+ * Recorre todas las páginas de un listado.
+ * La respuesta de Holded pagina con `{ cursor, has_more }` — no con `next_cursor`.
+ */
+async function listarTodo<T>(
+  ruta: string,
+  consulta: Record<string, string | number | undefined> = {},
+): Promise<T[]> {
+  const items: T[] = []
+  let cursor: string | undefined
+  // Tope de seguridad: 50 páginas × 100 = 5.000 registros.
+  for (let pagina = 0; pagina < 50; pagina++) {
+    const datos = await peticion<{ items: T[]; cursor?: string | null; has_more?: boolean }>(ruta, {
+      consulta: { ...consulta, limit: 100, cursor },
+    })
+    items.push(...(datos.items ?? []))
+    if (!datos.has_more || !datos.cursor) break
+    cursor = datos.cursor
+  }
+  return items
+}
+
+// ── Productos ────────────────────────────────────────────────────────────────
+
+export interface VarianteHolded {
+  id: string
+  sku: string | null
+  barcode: string | null
+  price: string | null
+  stock: string | null
+  archived: boolean
+}
+
+export interface EntradaStock {
+  warehouse_id: string
+  variant_id: string | null
+  stock: string
+}
+
+export interface ProductoHolded {
+  id: string
+  kind: 'simple' | 'variants' | 'lots' | 'pack' | 'serialnumbers'
+  name: string
+  description: string | null
+  sku: string | null
+  barcode: string | null
+  price: string | null
+  taxes: string[]
+  tags: string[]
+  has_stock: boolean
+  stock: string | null
+  stocks: EntradaStock[] | null
+  for_sale: boolean
+  archived: boolean
+  variants: VarianteHolded[] | null
+}
+
+export function listarProductos(): Promise<ProductoHolded[]> {
+  return listarTodo<ProductoHolded>('/products')
+}
+
+export interface ImagenHolded {
+  id: string
+  position: number
+  url: string
+  sizes: Record<string, { url: string; width: number; height: number }> | null
+}
+
+export async function listarImagenes(idProducto: string): Promise<ImagenHolded[]> {
+  const datos = await peticion<{ items: ImagenHolded[] }>(`/products/${idProducto}/images`)
+  return datos.items ?? []
+}
+
+// ── Contactos ────────────────────────────────────────────────────────────────
+
+export interface ContactoHolded {
+  id: string
+  name: string
+  email: string | null
+  code: string | null
+  tags: string[]
+  type: string | null
+  is_person: boolean
+  bill_address: {
+    address: string | null
+    city: string | null
+    province: string | null
+    postal_code: string | null
+    country_code: string | null
+  } | null
+}
+
+/** Busca por email exacto. Devuelve null si no existe. */
+export async function buscarContactoPorEmail(email: string): Promise<ContactoHolded | null> {
+  const datos = await peticion<{ items: ContactoHolded[] }>('/contacts', {
+    consulta: { email: email.trim().toLowerCase(), limit: 1 },
+  })
+  return datos.items?.[0] ?? null
+}
+
+export interface NuevoContacto {
+  name: string
+  email: string
+  code?: string | null
+  is_person?: boolean
+  type?: 'client'
+  bill_address?: Record<string, string | null>
+}
+
+export async function crearContacto(datos: NuevoContacto): Promise<{ id: string }> {
+  return peticion<{ id: string }>('/contacts', { metodo: 'POST', cuerpo: datos })
+}
+
+// ── Pedidos ──────────────────────────────────────────────────────────────────
+
+/**
+ * Línea de pedido.
+ *
+ * Ojo con dos asimetrías de la API, comprobadas contra pedidos reales:
+ *
+ * 1. Al **escribir** el array se llama `items`; al **leer**, `lines`.
+ * 2. `shipping` NO es un tipo de línea válido en la v2 (el enum sólo acepta
+ *    `product`, `service` y `title`), al contrario de lo que decía el brief.
+ *    El transporte va como línea de tipo `service`.
+ *
+ * `variant_id` no aparece en el esquema del POST pero sí en el modelo de lectura,
+ * así que se envía igualmente. Como red de seguridad, la variante viaja **además**
+ * en `description` con el mismo formato que ya usa el equipo a mano ("S, Azul"):
+ * aunque Holded ignorase el campo, el pedido sigue siendo legible en el panel.
+ */
+export interface LineaPedido {
+  type: 'product' | 'service' | 'title'
+  product_id?: string
+  variant_id?: string
+  name: string
+  description?: string
+  units: number
+  /** Precio unitario numérico. Holded guarda lo que se le envía, no lo relee del producto. */
+  price: number
+  sku?: string
+  taxes?: string[]
+}
+
+export interface NuevoPedido {
+  contact_id: string
+  date?: string
+  items: LineaPedido[]
+  notes?: string
+  description?: string
+  tags?: string[]
+  number_line_id?: string
+  warehouse_id?: string
+  custom_fields?: Array<{ field: string; value: string }>
+}
+
+export async function crearPedido(datos: NuevoPedido): Promise<{ id: string }> {
+  return peticion<{ id: string }>('/sales-orders', { metodo: 'POST', cuerpo: datos })
+}
+
+// ── Webhooks ─────────────────────────────────────────────────────────────────
+
+export function crearWebhook(datos: {
+  url: string
+  events: string[]
+  description?: string
+}): Promise<unknown> {
+  return peticion('/webhooks', { metodo: 'POST', cuerpo: { ...datos, version: 'v1' } })
+}
+
+export function listarWebhooks(): Promise<unknown> {
+  return peticion('/webhooks')
+}
