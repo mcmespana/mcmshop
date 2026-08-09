@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { lineas, totalCentimos, unidades, vacio, vaciar } = useCarrito()
-const { modo, cambiar } = useModo()
+const { modo, proponer } = useModo()
 
 const { data: sesion } = await useFetch('/api/sesion')
 
@@ -23,7 +23,9 @@ watchEffect(() => {
   if (!sesion.value?.autenticado) return
   formulario.email ||= sesion.value.email
   formulario.nombre ||= sesion.value.nombre ?? ''
-  if (sesion.value.esDelegacion) cambiar('b2b')
+  // Su contacto es delegación: se propone B2B, pero si ya eligió, manda su elección.
+  // Alguien de una delegación también hace pedidos personales.
+  if (sesion.value.esDelegacion) proponer('b2b')
 })
 
 const enviando = ref(false)
