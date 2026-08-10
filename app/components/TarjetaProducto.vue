@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import type { ProductoCatalogo, VarianteCatalogo } from '~~/server/utils/catalogo'
 
-const props = defineProps<{ producto: ProductoCatalogo }>()
+const props = defineProps<{ producto: ProductoCatalogo; indice?: number }>()
+
+// Entrada en cascada: cada tarjeta aparece un poco después que la anterior. Se
+// limita a las primeras 12 para que en catálogos grandes no haya que esperar
+// un segundo entero a que aparezca la última fila.
+const retrasoEntrada = `${Math.min(props.indice ?? 0, 12) * 45}ms`
 
 const { anadir } = useCarrito()
 
@@ -40,7 +45,8 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 
 <template>
   <article
-    class="group flex flex-col overflow-hidden rounded-tarjeta border border-borde bg-lienzo-alto transition hover:border-tinta-suave/40"
+    class="group mcm-animar-entrada flex flex-col overflow-hidden rounded-tarjeta border border-borde bg-lienzo-alto transition hover:-translate-y-0.5 hover:border-tinta-suave/40 hover:shadow-lg hover:shadow-tinta/5"
+    :style="{ animationDelay: retrasoEntrada }"
   >
     <div class="relative">
       <GaleriaProducto :imagenes="producto.imagenes" :alt="producto.nombre" :color="color" />
@@ -99,10 +105,34 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 
           <button
             type="button"
-            class="rounded-lg bg-acento px-3 py-2 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto active:scale-95"
+            class="flex items-center gap-1.5 rounded-lg bg-acento px-3 py-2 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto active:scale-95"
             @click="alAnadir"
           >
-            {{ anadido ? '¡Añadido!' : 'Añadir' }}
+            <Transition
+              mode="out-in"
+              enter-active-class="transition duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+              enter-from-class="scale-50 opacity-0"
+              enter-to-class="scale-100 opacity-100"
+            >
+              <svg
+                v-if="anadido"
+                key="check"
+                viewBox="0 0 20 20"
+                fill="none"
+                class="size-4"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 10.5 L8 14.5 L16 5.5"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span v-else key="texto">Añadir</span>
+            </Transition>
+            <span v-if="anadido">¡Añadido!</span>
           </button>
         </div>
       </div>

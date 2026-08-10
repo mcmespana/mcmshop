@@ -301,9 +301,18 @@ Donde sí conviene tener cuidado es si algún día se añade un "quiero recibir 
 - **Favicon, `robots.txt` y sitemap.**
 - **Tests automáticos.** La verificación ha sido manual contra la API real.
 - **Página de error 404 propia.**
-- **Botón de pagar con tarjeta en el checkout.** Los endpoints y las páginas de vuelta
-  están hechos, pero el checkout todavía sólo ofrece transferencia y Bizum. Añadir la
-  opción es enviar el formulario a `/api/pago/iniciar` y autoenviar por POST lo que
-  devuelve. Se deja sin activar a propósito hasta que existan las credenciales del
-  banco: un botón de pagar que no funciona es peor que no tenerlo.
 - **Cron de resync** (punto 5).
+
+### Pagar con tarjeta ya está en el checkout — sólo en B2B
+
+El checkout muestra "Transferencia bancaria" o "Tarjeta, ahora mismo" únicamente en
+modo delegación; en particular sigue habiendo sólo Bizum, sin selector. Al elegir
+tarjeta, el botón cambia a "Pagar X € con tarjeta" y construye un formulario oculto que
+se autoenvía por POST a Redsys con lo que devuelve `/api/pago/iniciar`.
+
+**Comprobado hasta donde el entorno de desarrollo lo permite**: interceptando la
+petición se ve que sale correctamente hacia
+`https://sis-t.redsys.es:25443/sis/realizarPago` con los tres campos
+(`Ds_SignatureVersion`, `Ds_MerchantParameters`, `Ds_Signature`) y el importe, comercio,
+terminal y titular bien puestos dentro del base64. Lo único que falta por probar es la
+vuelta real del banco, y para eso hacen falta las credenciales del punto 6.
