@@ -33,6 +33,10 @@ useSeoMeta({ title: 'El pago no se ha completado' })
       <p class="mt-5 text-xs text-tinta-suave">
         Si se repite, escríbenos y lo apuntamos a mano. No hace falta que pelees con el TPV.
       </p>
+
+      <div class="mx-auto mt-5 max-w-sm text-left">
+        <ContactoAyuda variante="destacada" />
+      </div>
     </div>
   </main>
 </template>

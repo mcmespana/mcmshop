@@ -8,7 +8,12 @@ import { SignJWT, jwtVerify } from 'jose'
 import type { H3Event } from 'h3'
 
 const COOKIE = 'mcm_sesion'
-const DURACION_DIAS = 30
+/**
+ * 400 días: no es un número redondo por casualidad, es el máximo que Chrome
+ * acepta en `Set-Cookie` desde 2023. Pedir más se recorta solo a esto, así que
+ * mejor pedirlo directamente: es la sesión más larga que el navegador permite.
+ */
+const DURACION_DIAS = 400
 
 export interface Sesion {
   email: string
