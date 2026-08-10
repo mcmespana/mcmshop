@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { lineas, totalCentimos, unidades, vacio, vaciar } = useCarrito()
-const { modo, proponer } = useModo()
+const { modo, delegacion, proponer } = useModo()
 
 const { data: sesion } = await useFetch('/api/sesion')
 
@@ -16,6 +16,14 @@ const formulario = reactive({
   personaContacto: '',
   notas: '',
   transporte: 'consolacion' as 'consolacion' | 'mensajeria',
+  // Marcada de salida por decisión del equipo. Ver la nota bajo la casilla.
+  proteccionDatos: true,
+})
+
+// El nombre de la delegación elegida en la bienvenida ya viene puesto: quien pide
+// para MCM Castellón no debería tener que volver a escribirlo.
+watchEffect(() => {
+  if (modo.value === 'b2b' && delegacion.value) formulario.nombre ||= delegacion.value.nombre
 })
 
 // Si hay sesión de Google, los datos vienen precargados.
@@ -157,10 +165,14 @@ useSeoMeta({ title: 'Finalizar pedido' })
           </label>
 
           <label v-if="modo === 'b2b'" class="block">
-            <span class="mb-1 block text-xs text-tinta-suave">Persona de contacto</span>
+            <span class="mb-1 block text-xs text-tinta-suave">
+              ¿Con quién hablamos de este pedido?
+            </span>
             <input
               v-model="formulario.personaContacto"
               type="text"
+              required
+              placeholder="Nombre de la persona"
               class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
             />
           </label>
@@ -265,13 +277,28 @@ useSeoMeta({ title: 'Finalizar pedido' })
         </label>
       </section>
 
+      <label class="flex cursor-pointer items-start gap-2.5 px-1 text-sm">
+        <input v-model="formulario.proteccionDatos" type="checkbox" class="mt-0.5 shrink-0" />
+        <span class="text-tinta-suave">
+          He leído la
+          <a
+            href="https://comunica.movimientoconsolacion.com/politicadeprivacidad/"
+            target="_blank"
+            rel="noopener"
+            class="text-acento underline underline-offset-2"
+          >
+            política de privacidad </a
+          >. Usamos tus datos para preparar y enviarte este pedido.
+        </span>
+      </label>
+
       <p v-if="error" class="rounded-lg bg-aviso/10 px-3.5 py-2.5 text-sm text-aviso">
         {{ error }}
       </p>
 
       <button
         type="submit"
-        :disabled="enviando"
+        :disabled="enviando || !formulario.proteccionDatos"
         class="w-full rounded-lg bg-acento py-3 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto disabled:opacity-60"
       >
         {{ enviando ? 'Enviando…' : `Confirmar pedido · ${formatearEuros(totalCentimos)}` }}

@@ -69,7 +69,6 @@ useSeoMeta({
           </div>
         </div>
 
-        <AvisoModo />
 
         <div v-if="status === 'pending'" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div

@@ -38,6 +38,12 @@ export default defineNuxtConfig({
      * porque que un producto salga a la venta debe ser una decisión explícita.
      */
     catalogoSinFiltro: false,
+    // Redsys (TPV de Banco Sabadell). Ver PUESTA_EN_MARCHA.md, punto 6.
+    redsysComercio: '',
+    redsysTerminal: '001',
+    redsysClave: '',
+    /** `pruebas` o `produccion`. Cada entorno tiene SU PROPIA clave de firma. */
+    redsysEntorno: 'pruebas',
     public: {
       siteUrl: 'http://localhost:3000',
     },
@@ -55,5 +61,12 @@ export default defineNuxtConfig({
     // Nada de cachear lo que depende de la sesión o muta datos.
     '/checkout': { isr: false },
     '/api/pedidos': { isr: false },
+    /*
+      Redsys deriva la clave de firma con 3DES (`node:crypto`), que no existe en
+      runtime edge. En Vercel el preset por defecto ya despliega funciones Node,
+      así que esto funciona tal cual; lo que NO se puede hacer es cambiar el
+      proyecto al preset `vercel-edge` sin sacar antes estas rutas.
+    */
+    '/api/pago/**': { isr: false },
   },
 })

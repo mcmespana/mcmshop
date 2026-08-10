@@ -176,47 +176,96 @@ sola a los 5 minutos, así que esto es opcional de verdad.
 
 ---
 
-## 6. Redsys — TPV Virtual de Banco Sabadell (fase 1.5)
+## 6. Redsys — TPV Virtual de Banco Sabadell
 
-No está implementado. Esto es lo que hay que pedirle al banco y lo que hará falta.
+**El código está escrito y funcionando.** Sólo faltan las credenciales: en cuanto las
+metas en las variables de entorno, se puede cobrar.
 
-### Lo que tiene que darte Sabadell
+### Lo que tienes que pedirle a Sabadell
 
-| Dato | Qué es |
+Pídelo todo de una vez, que si no son tres correos:
+
+| Dato | Qué es | Variable |
+|---|---|---|
+| **Número de comercio (FUC)** | 9 dígitos | `NUXT_REDSYS_COMERCIO` |
+| **Número de terminal** | normalmente `001` | `NUXT_REDSYS_TERMINAL` |
+| **Clave secreta de firma SHA-256** | cadena en base64 | `NUXT_REDSYS_CLAVE` |
+
+Y además, **dilo explícitamente en el correo**:
+
+1. Que quieres **acceso al entorno de pruebas** además del de producción.
+   **Son dos claves distintas** — usar la de producción contra el entorno de pruebas
+   falla con un error de firma que no dice por qué, y se pierde media tarde ahí.
+2. Que el terminal tenga activada la **notificación online** (URL de comercio /
+   `Ds_Merchant_MerchantURL`). Sin ella no os enteráis de un pago si el cliente cierra
+   la pestaña al terminar, que pasa constantemente.
+3. Que el terminal admita **HMAC_SHA256_V1** (es el estándar actual; si os dan uno
+   configurado en SHA-1 antiguo, que lo cambien).
+
+Cuando las tengas: `NUXT_REDSYS_ENTORNO=pruebas` primero, y sólo `produccion` cuando
+hayas hecho una compra de prueba entera.
+
+### Cómo probarlo sin pagar de verdad
+
+Con `NUXT_REDSYS_ENTORNO=pruebas` el portal apunta a
+`https://sis-t.redsys.es:25443/sis/realizarPago`, que es el entorno de pruebas de
+Redsys: **no hay dinero real, no hay cargos, no hay tarjetas reales**. Puedes pagar
+mil veces sin que se mueva un céntimo.
+
+Ahí se paga con las **tarjetas de prueba** que da Redsys. Los valores habituales:
+
+| Campo | Valor |
 |---|---|
-| **Número de comercio (FUC)** | 9 dígitos, identifica al comercio |
-| **Número de terminal** | normalmente `001` |
-| **Clave secreta de firma (SHA-256)** | en base64. **Hay una de pruebas y otra de producción, y son distintas** |
-| Moneda y tipo de transacción | `978` (euro) y `0` (autorización) |
+| Número | `4548 8120 4940 0004` |
+| Caducidad | cualquier fecha futura (p. ej. `12/34`) |
+| CVV | `123` |
+| Clave de autenticación (3DS) | `123456` |
 
-Pide explícitamente el entorno de **pruebas** además del de producción, y que te
-confirmen que el terminal está configurado para **notificación online** (sin ella no os
-enteráis del pago si el cliente cierra el navegador al volver).
+> Estos valores los publica Redsys y **los cambia de vez en cuando**. Si esa tarjeta
+> te da error, pide a Sabadell la ficha de tarjetas de prueba vigente en lugar de
+> pelearte con ella: no es un fallo del código.
 
-### Cómo funciona
+Para forzar un **rechazo** y comprobar que la vuelta KO funciona, usa un importe cuyos
+últimos dígitos correspondan a un código de error, o simplemente mete un CVV
+equivocado. Interesa probar los dos caminos, no sólo el feliz.
 
-Se envía un formulario por POST con tres campos: `Ds_SignatureVersion`
-(`HMAC_SHA256_V1`), `Ds_MerchantParameters` (los datos del pago en JSON y base64) y
-`Ds_Signature`. La firma es un HMAC-SHA256 sobre una clave derivada por 3DES a partir
-del número de pedido y la clave secreta.
+**El problema del `localhost`:** la notificación la manda Redsys **a tu servidor**, no
+el navegador, así que apuntando a `http://localhost:3000` nunca llega. Para probar en
+local hace falta un túnel público:
 
-Entornos:
+```bash
+npx untun@latest tunnel http://localhost:3000
+# y pon NUXT_PUBLIC_SITE_URL con la URL https que te dé
+```
 
-- pruebas: `https://sis-t.redsys.es:25443/sis/realizarPago`
-- producción: `https://sis.redsys.es/sis/realizarPago`
+O más simple: prueba directamente sobre el despliegue de vista previa de Vercel, que ya
+tiene URL pública.
 
-Harán falta tres URLs vuestras: la de notificación (servidor a servidor, la que de
-verdad confirma el pago), la de vuelta OK y la de vuelta KO.
+### Cómo está montado
 
-### Dos avisos técnicos
+Dos endpoints:
 
-1. **El 3DES puede fallar en runtime edge.** Esa ruta concreta hay que forzarla a
-   runtime Node en Vercel. Se decide al crear el endpoint, no después.
-2. **Sin base de datos, hay un hueco real**: si el cliente paga y la llamada a Holded
-   falla justo después, habéis cobrado sin pedido. Antes de meter Redsys hay que
-   guardar el pedido en el almacén compartido **antes** de mandar al cliente a pagar, y
-   crear el documento en Holded cuando llegue la notificación. Con transferencia y
-   Bizum ese problema no existe, porque el pedido se crea antes de cobrar nada.
+- `POST /api/pago/iniciar` — recalcula el importe **en el servidor** releyendo el
+  catálogo (para que nadie pague 1 céntimo por una sudadera editando la petición),
+  guarda el pedido pendiente y devuelve el formulario firmado para Redsys.
+- `POST /api/pago/notificacion` — verifica la firma y, sólo si el banco confirma el
+  cobro, crea el pedido en Holded ya marcado como cobrado.
+
+**El pedido se crea al cobrar, no antes.** Así, quien abandona el TPV a medias no deja
+un pedido fantasma en el ERP, y quien paga tiene su pedido guardado con la referencia
+de autorización aunque Holded fallase en ese momento. La notificación es idempotente:
+Redsys reintenta si no recibe un 200, y un reintento no crea un segundo pedido.
+
+También se comprueba que el importe cobrado coincida con el preparado. Si no cuadra,
+**no se crea el pedido** y queda registrado en el log: es mejor una llamada del equipo
+que un documento con un importe que nadie sabe de dónde sale.
+
+### Aviso técnico
+
+Redsys deriva la clave de firma con **3DES**, que no existe en runtime edge. En Vercel
+el preset por defecto despliega funciones Node, así que funciona tal cual. Lo que **no**
+se puede hacer es cambiar el proyecto al preset `vercel-edge` sin sacar antes las rutas
+de `/api/pago/`.
 
 ---
 
@@ -231,13 +280,30 @@ verdad confirma el pago), la de vuelta OK y la de vuelta KO.
 
 ---
 
-## 8. Lo que sigue sin estar hecho
+## 8. Protección de datos
 
-- **Aviso de tratamiento de datos en el checkout.** Los textos legales ya están
-  enlazados en el pie, pero el formulario crea contactos con nombre, correo y dirección
-  en el CRM y no dice nada al respecto en el momento de enviarlos. Con menores de por
-  medio esto no es opcional.
-- **Redsys** (punto 6).
+En el checkout hay una casilla que enlaza vuestra política de privacidad, **marcada por
+defecto** por decisión del equipo.
+
+Un apunte para que lo sepáis, no para discutirlo: una casilla premarcada **no es
+consentimiento válido** según el RGPD (hace falta un acto afirmativo). La buena noticia
+es que para tramitar un pedido no hace falta consentimiento: la base legal es la
+**ejecución de un contrato**, y lo que exige la ley entonces es *informar*, que es
+justo lo que hace el enlace. Así que el montaje actual es defendible.
+
+Donde sí conviene tener cuidado es si algún día se añade un "quiero recibir novedades":
+**eso sí sería consentimiento y no puede ir premarcado.**
+
+---
+
+## 9. Lo que sigue sin estar hecho
+
 - **Favicon, `robots.txt` y sitemap.**
-- **Tests automáticos.** Hoy la verificación ha sido manual contra la API real.
+- **Tests automáticos.** La verificación ha sido manual contra la API real.
 - **Página de error 404 propia.**
+- **Botón de pagar con tarjeta en el checkout.** Los endpoints y las páginas de vuelta
+  están hechos, pero el checkout todavía sólo ofrece transferencia y Bizum. Añadir la
+  opción es enviar el formulario a `/api/pago/iniciar` y autoenviar por POST lo que
+  devuelve. Se deja sin activar a propósito hasta que existan las credenciales del
+  banco: un botón de pagar que no funciona es peor que no tenerlo.
+- **Cron de resync** (punto 5).

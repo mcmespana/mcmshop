@@ -162,47 +162,53 @@ Comprobado contra los 7 pedidos históricos reales, no sólo contra el esquema.
 3. **`price` es numérico** en la petición, aunque en las respuestas venga como cadena
    con coma decimal.
 
-### Comprobado creando un pedido real
+### Cómo se pide una variante concreta: la almohadilla
 
-Se creó un pedido de prueba con la API y se inspeccionó el resultado. Cuatro cosas
-que sólo se ven ejecutándolo:
+**Éste es el hallazgo importante, y cuesta encontrarlo.** El endpoint de pedidos no
+documenta ninguna forma de indicar la variante, y el campo obvio no funciona. La
+solución es meter la variante **dentro del propio `product_id`**, separada por una
+almohadilla:
+
+```json
+{ "type": "product", "product_id": "<idProducto>#<idVariante>", "units": 2 }
+```
+
+Es una sintaxis que la API sólo documenta para los `pack_items` de un producto, pero
+funciona igual en las líneas de un pedido.
+
+Comprobado enviando **las cuatro formas posibles en un mismo pedido** y leyendo qué
+guardaba Holded en cada línea:
+
+| Lo que se envió | `variant_id` guardado | `sku` guardado |
+|---|---|---|
+| `product_id: "PROD#VAR"` | ✅ **el correcto** | ✅ `PAN-MIC` (el de la variante) |
+| `product_id: PROD` + `variant_id: VAR` | ❌ `null` | ❌ `PAN-` (el del padre) |
+| `product_id: PROD` + `variantId: VAR` | ❌ `null` | ❌ `PAN-` |
+| `product_id: PROD` + `variant: VAR` | ❌ `null` | ❌ `PAN-` |
+
+Con la almohadilla, además, Holded **resuelve solo el SKU correcto** de la variante.
+Sin ella pisa el `sku` de la línea con el del producto padre, y entonces no queda
+ningún campo estructurado que diga qué talla se pidió.
+
+La etiqueta legible se sigue mandando en `description` (`"Azul Royal · XL"`), pero ya
+no como parche: es lo que el equipo lee de un vistazo al preparar el pedido, igual que
+cuando lo escriben a mano.
+
+### Otras dos cosas que sólo se ven creando un pedido
 
 | Qué se envió | Qué guardó Holded |
 |---|---|
-| `variant_id: "67a5058b…213c"` | **`null`** — se ignora al crear |
-| `sku: "PAN-COM-VER"` (de la variante) | **`"PAN-"`** — lo pisa con el SKU del producto padre |
 | `tags: ["tienda-web"]` | `"tiendaweb"` — elimina los guiones |
 | (nada) | `draft: true`, `document_number: null` |
 
-Las dos primeras son la consecuencia importante: **`description` es el único campo
-donde sobrevive qué variante se ha pedido.** Por eso la línea lleva la etiqueta
-legible y detrás el SKU real de la variante (`"COM Verde · PAN-COM-VER"`).
-
-Lo cuarto: el pedido nace en borrador y sin número, mientras que los que hace el
-equipo a mano están aprobados con número (`PED-MAT-26-06`). El número se asigna con
+El pedido nace en borrador y sin número, mientras que los que hace el equipo a mano
+están aprobados con número (`PED-MAT-26-06`). El número se asigna con
 `POST /sales-orders/{id}/approve`. El portal lo deja en borrador por defecto —el
-formulario es público y la numeración consumida no se recupera— y se puede cambiar
-con `NUXT_APROBAR_PEDIDOS=true`.
+formulario es público y la numeración consumida no se recupera— y se cambia con
+`NUXT_APROBAR_PEDIDOS=true`.
 
-### `variant_id` existe al leer, pero no se puede escribir
-
-El esquema del POST no lo incluye; el modelo de lectura sí lo trae poblado:
-
-```json
-{
-  "name": "Sudaderas M+C",
-  "description": "S, Azul",
-  "product_id": "67a639e257b175f81d0e2776",
-  "variant_id": "67a639e257b175f81d0e2778",
-  "sku": "SUD-MC-S",
-  "units": "3,00",
-  "price": "12,00"
-}
-```
-
-Se envía igualmente por si algún día lo admite, pero no se depende de él. Tampoco
-se puede depender del `sku`: además de que Holded lo sobrescribe, no es
-identificador único (las 6 Sudaderas LC comparten `SUD-LC`).
+Nota aparte: el `sku` no sirve como identificador único aunque se resuelva bien. Las 6
+variantes de Sudaderas LC comparten `SUD-LC`.
 
 ### Foto por color, sin duplicar productos
 

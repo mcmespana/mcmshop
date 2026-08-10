@@ -2,21 +2,31 @@ import type { Modo } from '~~/server/utils/catalogo'
 
 export type { Modo }
 
+export interface Delegacion {
+  id: string
+  nombre: string
+}
+
 /**
- * B2B (delegación) o B2C (particular).
+ * B2B (delegación) o B2C (particular), y qué delegación en concreto.
  *
  * El dominio del correo NO sirve para deducirlo: hay personas con correo
- * @movimientoconsolacion.com. Así que lo elige el usuario. Si entra con Google y su
- * contacto lleva el tag `mcmlocal` en Holded, se le propone B2B por defecto, pero
- * puede cambiarlo: alguien de una delegación también hace pedidos personales.
+ * @movimientoconsolacion.com. Lo elige la persona en la pantalla de bienvenida.
  *
- * Se distingue "no ha elegido todavía" de "ha elegido particular", porque son cosas
- * distintas: al primero hay que explicarle la diferencia una vez, al segundo no.
- * Aun así nunca se bloquea la entrada al catálogo con una pantalla previa.
+ * Nadie verifica que quien dice ser MCM Castellón lo sea: es una decisión
+ * consciente. Quien quiera ver su histórico tendrá que entrar con Google, y un
+ * pedido falso lo borra el equipo en Holded. Poner un muro delante habría frenado
+ * a las 10 delegaciones reales para protegerse de un problema que no existe.
  */
 export function useModo() {
-  const cookie = useCookie<Modo>('mcm_modo', {
+  const cookieModo = useCookie<Modo>('mcm_modo', {
     default: () => 'b2c',
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax',
+  })
+
+  const cookieDelegacion = useCookie<Delegacion | null>('mcm_delegacion', {
+    default: () => null,
     maxAge: 60 * 60 * 24 * 365,
     sameSite: 'lax',
   })
@@ -27,33 +37,54 @@ export function useModo() {
     sameSite: 'lax',
   })
 
-  const modo = useState<Modo>('modo', () => cookie.value)
+  const modo = useState<Modo>('modo', () => cookieModo.value)
+  const delegacion = useState<Delegacion | null>('delegacion', () => cookieDelegacion.value)
   const haElegido = useState<boolean>('modo-elegido', () => cookieElegido.value === '1')
 
-  watch(modo, (nuevo) => {
-    cookie.value = nuevo
+  watch(modo, (v) => {
+    cookieModo.value = v
+  })
+  watch(delegacion, (v) => {
+    cookieDelegacion.value = v
   })
 
-  /** Elección explícita de la persona: deja de preguntársele. */
-  function cambiar(nuevo: Modo) {
-    modo.value = nuevo
+  /** Entra como delegación concreta. */
+  function elegirDelegacion(elegida: Delegacion) {
+    modo.value = 'b2b'
+    delegacion.value = elegida
     haElegido.value = true
     cookieElegido.value = '1'
   }
 
-  /** Propuesta del sistema (p. ej. su contacto es delegación): no cuenta como elección. */
+  /** Entra como persona: monitor o miembro del MCM. */
+  function elegirPersonal() {
+    modo.value = 'b2c'
+    delegacion.value = null
+    haElegido.value = true
+    cookieElegido.value = '1'
+  }
+
+  /** Propuesta del sistema (su contacto lleva el tag `mcmlocal`): no es una elección. */
   function proponer(nuevo: Modo) {
     if (haElegido.value) return
     modo.value = nuevo
   }
 
-  /** Cierra el aviso sin cambiar nada: quien lo ignora se queda en particular. */
-  function descartarAviso() {
-    haElegido.value = true
-    cookieElegido.value = '1'
-  }
-
   const esDelegacion = computed(() => modo.value === 'b2b')
 
-  return { modo, cambiar, proponer, descartarAviso, haElegido, esDelegacion }
+  /** Cómo llamar a quien está comprando ahora mismo. */
+  const nombreModo = computed(() =>
+    modo.value === 'b2b' ? (delegacion.value?.nombre ?? 'Delegación') : 'Pedido personal',
+  )
+
+  return {
+    modo,
+    delegacion,
+    haElegido,
+    esDelegacion,
+    nombreModo,
+    elegirDelegacion,
+    elegirPersonal,
+    proponer,
+  }
 }
