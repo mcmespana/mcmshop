@@ -40,9 +40,41 @@ const enviando = ref(false)
 const error = ref<string | null>(null)
 const pedidoHecho = ref(false)
 
+/**
+ * Cómo se paga. Tarjeta sólo en B2B: es delegación pidiendo con su tarjeta de
+ * cuenta o similar, mientras que en B2C se mantiene Bizum, que es lo que ya usan
+ * los particulares y no tiene coste de pasarela.
+ */
+const formaDePago = ref<'transferencia' | 'tarjeta'>('transferencia')
+watch(modo, () => (formaDePago.value = 'transferencia'))
+
 // Se genera una vez por carrito: si la petición se corta y se reintenta, Holded
 // no acaba con dos pedidos iguales.
 const claveIdempotencia = ref(crypto.randomUUID())
+
+function datosComunes() {
+  return {
+    modo: modo.value,
+    transporte: formulario.transporte,
+    lineas: lineas.value.map((l) => ({
+      productoId: l.productoId,
+      varianteId: l.varianteId,
+      cantidad: l.cantidad,
+    })),
+    cliente: {
+      email: formulario.email,
+      nombre: formulario.nombre,
+      telefono: formulario.telefono || undefined,
+      cif: formulario.cif || undefined,
+      direccion: formulario.direccion || undefined,
+      poblacion: formulario.poblacion || undefined,
+      provincia: formulario.provincia || undefined,
+      codigoPostal: formulario.codigoPostal || undefined,
+    },
+    personaContacto: formulario.personaContacto || undefined,
+    notas: formulario.notas || undefined,
+  }
+}
 
 async function enviar() {
   if (enviando.value) return
@@ -50,37 +82,44 @@ async function enviar() {
   error.value = null
 
   try {
+    if (formaDePago.value === 'tarjeta') {
+      // Redsys se paga con un formulario que se autoenvía por POST: el pedido no
+      // se crea todavía en Holded, sólo cuando el banco confirme el cobro.
+      const redsys = await $fetch('/api/pago/iniciar', {
+        method: 'POST',
+        body: { claveIdempotencia: claveIdempotencia.value, ...datosComunes() },
+      })
+
+      const form = document.createElement('form')
+      form.method = 'POST'
+      form.action = redsys.url
+      form.style.display = 'none'
+      for (const [nombre, valor] of Object.entries({
+        Ds_SignatureVersion: redsys.Ds_SignatureVersion,
+        Ds_MerchantParameters: redsys.Ds_MerchantParameters,
+        Ds_Signature: redsys.Ds_Signature,
+      })) {
+        const campo = document.createElement('input')
+        campo.type = 'hidden'
+        campo.name = nombre
+        campo.value = valor
+        form.appendChild(campo)
+      }
+      document.body.appendChild(form)
+      form.submit()
+      // No se desactiva `enviando`: la página va a navegar fuera ahora mismo.
+      return
+    }
+
     await $fetch('/api/pedidos', {
       method: 'POST',
-      body: {
-        claveIdempotencia: claveIdempotencia.value,
-        modo: modo.value,
-        transporte: formulario.transporte,
-        lineas: lineas.value.map((l) => ({
-          productoId: l.productoId,
-          varianteId: l.varianteId,
-          cantidad: l.cantidad,
-        })),
-        cliente: {
-          email: formulario.email,
-          nombre: formulario.nombre,
-          telefono: formulario.telefono || undefined,
-          cif: formulario.cif || undefined,
-          direccion: formulario.direccion || undefined,
-          poblacion: formulario.poblacion || undefined,
-          provincia: formulario.provincia || undefined,
-          codigoPostal: formulario.codigoPostal || undefined,
-        },
-        personaContacto: formulario.personaContacto || undefined,
-        notas: formulario.notas || undefined,
-      },
+      body: { claveIdempotencia: claveIdempotencia.value, ...datosComunes() },
     })
     pedidoHecho.value = true
     vaciar()
   } catch (e) {
     const mensaje = (e as { statusMessage?: string })?.statusMessage
     error.value = mensaje ?? 'No hemos podido registrar el pedido. Inténtalo en un momento.'
-  } finally {
     enviando.value = false
   }
 }
@@ -257,17 +296,48 @@ useSeoMeta({ title: 'Finalizar pedido' })
 
       <section class="space-y-3 rounded-tarjeta border border-borde bg-lienzo-alto p-4">
         <h2 class="font-medium">Pago</h2>
-        <p class="text-sm text-tinta-suave">
-          <template v-if="modo === 'b2b'">
-            Por transferencia. Apuntamos el pedido y te mandamos el IBAN y la referencia por correo.
-          </template>
-          <template v-else>
-            Con Bizum ONG. Apuntamos el pedido y te mandamos el código y las instrucciones por
-            correo.
-          </template>
-        </p>
 
-        <label class="block">
+        <!-- B2C: sólo Bizum, sin selector — es lo único que hay, no hace falta elegir -->
+        <div v-if="modo === 'b2c'" class="flex items-center gap-3 rounded-lg border border-borde p-3">
+          <IconoBizum class="size-9 shrink-0" />
+          <span class="text-sm text-tinta-suave">
+            Con <strong class="font-medium text-tinta">Bizum ONG</strong>. Apuntamos el pedido y te
+            mandamos el código y las instrucciones por correo.
+          </span>
+        </div>
+
+        <!-- B2B: transferencia o tarjeta -->
+        <div v-else class="space-y-2.5">
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
+            :class="formaDePago === 'transferencia' ? 'border-acento bg-acento/5' : 'border-borde'"
+          >
+            <input v-model="formaDePago" type="radio" value="transferencia" />
+            <IconoTransferencia class="size-9 shrink-0" />
+            <span>
+              <span class="block text-sm font-medium">Transferencia bancaria</span>
+              <span class="block text-xs text-tinta-suave">
+                Apuntamos el pedido y te mandamos el IBAN y la referencia por correo.
+              </span>
+            </span>
+          </label>
+
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
+            :class="formaDePago === 'tarjeta' ? 'border-acento bg-acento/5' : 'border-borde'"
+          >
+            <input v-model="formaDePago" type="radio" value="tarjeta" />
+            <IconoTarjeta class="size-9 shrink-0" />
+            <span>
+              <span class="block text-sm font-medium">Tarjeta, ahora mismo</span>
+              <span class="block text-xs text-tinta-suave">
+                Pago seguro con Redsys. El pedido se confirma en cuanto el banco lo autoriza.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <label class="block pt-1">
           <span class="mb-1 block text-xs text-tinta-suave">¿Nos quieres decir algo más?</span>
           <textarea
             v-model="formulario.notas"
@@ -301,7 +371,13 @@ useSeoMeta({ title: 'Finalizar pedido' })
         :disabled="enviando || !formulario.proteccionDatos"
         class="w-full rounded-lg bg-acento py-3 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto disabled:opacity-60"
       >
-        {{ enviando ? 'Enviando…' : `Confirmar pedido · ${formatearEuros(totalCentimos)}` }}
+        <template v-if="enviando">
+          {{ formaDePago === 'tarjeta' ? 'Te llevamos al banco…' : 'Enviando…' }}
+        </template>
+        <template v-else-if="formaDePago === 'tarjeta'">
+          Pagar {{ formatearEuros(totalCentimos) }} con tarjeta
+        </template>
+        <template v-else> Confirmar pedido · {{ formatearEuros(totalCentimos) }} </template>
       </button>
     </form>
   </main>

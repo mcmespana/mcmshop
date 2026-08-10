@@ -88,6 +88,42 @@ input[type='checkbox'] {
   }
 }
 
+/*
+  Entrada animada de las tarjetas del catálogo: aparecen con un pequeño salto en
+  cascada en vez de aparecer todas de golpe. `animation-delay` se pone inline por
+  tarjeta (ver TarjetaProducto.vue) para escalonarlas; aquí sólo vive el keyframe.
+*/
+@keyframes mcm-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.mcm-animar-entrada {
+  animation: mcm-entrada 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Rebote suave para chips y detalles pequeños que quieren llamar la atención sin
+   ser un carrusel de feria. */
+@keyframes mcm-rebote {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.mcm-rebote {
+  animation: mcm-rebote 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import type { ProductoCatalogo } from '~~/server/utils/catalogo'
+import IconoCamiseta from '~/components/IconoCamiseta.vue'
+import IconoSudadera from '~/components/IconoSudadera.vue'
+import IconoPanuelo from '~/components/IconoPanuelo.vue'
+import IconoOtros from '~/components/IconoOtros.vue'
 
 const { modo } = useModo()
 
@@ -17,17 +21,63 @@ const { data, status } = await useFetch<RespuestaCatalogo>('/api/catalogo', {
 
 const busqueda = ref('')
 
-const productos = computed(() => {
+/** Minúsculas y sin acentos, para no fallar por "pañuelo" vs "panuelo". */
+function normalizar(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+/**
+ * Categorías rápidas para el catálogo. Es un atajo visual, no un dato de Holded:
+ * se detectan por el nombre del producto. Con 13 productos hoy no hace falta
+ * más, y si algún día no encaja ninguno, cae en "Otros" en vez de desaparecer.
+ */
+const CATEGORIAS = [
+  { id: 'camiseta', etiqueta: 'Camisetas', icono: IconoCamiseta, prueba: /camiseta/ },
+  { id: 'sudadera', etiqueta: 'Sudaderas', icono: IconoSudadera, prueba: /sudadera/ },
+  { id: 'panuelo', etiqueta: 'Pañuelos', icono: IconoPanuelo, prueba: /pa[nñ]uelo/ },
+] as const
+
+const categoria = ref<string | null>(null)
+
+const categoriasConTotal = computed(() => {
   const todos = data.value?.productos ?? []
+  const contadas = CATEGORIAS.map((c) => ({
+    ...c,
+    total: todos.filter((p) => c.prueba.test(normalizar(p.nombre))).length,
+  })).filter((c) => c.total > 0)
+
+  const totalOtros = todos.length - contadas.reduce((s, c) => s + c.total, 0)
+  return totalOtros > 0
+    ? [...contadas, { id: 'otros', etiqueta: 'Otros', icono: IconoOtros, total: totalOtros }]
+    : contadas
+})
+
+const productos = computed(() => {
+  let lista = data.value?.productos ?? []
+
+  if (categoria.value) {
+    const def = CATEGORIAS.find((c) => c.id === categoria.value)
+    lista = def
+      ? lista.filter((p) => def.prueba.test(normalizar(p.nombre)))
+      : lista.filter((p) => !CATEGORIAS.some((c) => c.prueba.test(normalizar(p.nombre))))
+  }
+
   const q = busqueda.value.trim().toLowerCase()
-  if (!q) return todos
-  return todos.filter(
+  if (!q) return lista
+  return lista.filter(
     (p) =>
       p.nombre.toLowerCase().includes(q) ||
       p.descripcion?.toLowerCase().includes(q) ||
       p.variantes.some((v) => v.etiqueta.toLowerCase().includes(q)),
   )
 })
+
+function alternarCategoria(id: string) {
+  categoria.value = categoria.value === id ? null : id
+}
 
 const campoBusqueda = ref<HTMLInputElement | null>(null)
 
@@ -51,7 +101,21 @@ useSeoMeta({
   <main class="mx-auto max-w-7xl px-4 py-6">
     <div class="grid gap-8 lg:grid-cols-[1fr_20rem]">
       <div>
-        <div class="mb-5 flex items-center gap-3">
+        <!--
+          Fila de bienvenida: sólo un icono con un rebote suave, para que la
+          portada no sea únicamente una caja de búsqueda seria. El catálogo es
+          pequeño, así que el sitio para "personalidad" está aquí arriba, no en
+          una tarjeta más.
+        -->
+        <div v-if="status !== 'pending' && productos.length > 0" class="mb-4 flex items-center gap-2 text-sm text-tinta-suave">
+          <span class="mcm-rebote text-lg" aria-hidden="true">👋</span>
+          <span>
+            {{ (data?.productos.length ?? 0) }}
+            {{ (data?.productos.length ?? 0) === 1 ? 'cosa' : 'cositas' }} esperándote
+          </span>
+        </div>
+
+        <div class="mb-4 flex items-center gap-3">
           <div class="relative flex-1">
             <input
               ref="campoBusqueda"
@@ -69,6 +133,26 @@ useSeoMeta({
           </div>
         </div>
 
+        <!-- Chips de categoría: un atajo visual, no un filtro de Holded. -->
+        <div v-if="categoriasConTotal.length > 1" class="mb-5 flex flex-wrap gap-2">
+          <button
+            v-for="c in categoriasConTotal"
+            :key="c.id"
+            type="button"
+            :aria-pressed="categoria === c.id"
+            class="group flex items-center gap-2 rounded-full border py-1 pr-3.5 pl-1.5 text-sm transition"
+            :class="
+              categoria === c.id
+                ? 'border-acento bg-acento/10 font-medium text-acento-alto'
+                : 'border-borde text-tinta-suave hover:border-tinta-suave hover:text-tinta'
+            "
+            @click="alternarCategoria(c.id)"
+          >
+            <component :is="c.icono" :activo="categoria === c.id" class="size-6" />
+            {{ c.etiqueta }}
+            <span class="text-xs text-tinta-suave">{{ c.total }}</span>
+          </button>
+        </div>
 
         <div v-if="status === 'pending'" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div
@@ -82,6 +166,7 @@ useSeoMeta({
           v-else-if="productos.length === 0"
           class="rounded-tarjeta border border-borde bg-lienzo-alto px-4 py-12 text-center"
         >
+          <IconoOtros class="mcm-rebote mx-auto mb-3 size-10 opacity-70" />
           <p class="font-medium">
             {{ busqueda ? 'No hay nada con ese nombre' : 'Todavía no hay nada por aquí' }}
           </p>
@@ -101,7 +186,7 @@ useSeoMeta({
         </div>
 
         <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <TarjetaProducto v-for="p in productos" :key="p.id" :producto="p" />
+          <TarjetaProducto v-for="(p, i) in productos" :key="p.id" :producto="p" :indice="i" />
         </div>
       </div>
 
