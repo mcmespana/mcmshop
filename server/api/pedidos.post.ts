@@ -8,7 +8,15 @@ export const esquemaPedido = z.object({
   /** Identificador que genera el navegador para que un reintento no duplique el pedido. */
   claveIdempotencia: z.string().min(8).max(100),
   modo: z.enum(['b2b', 'b2c']),
+  /**
+   * Sólo transferencia y bizum: pagar con tarjeta va por /api/pago/iniciar, que
+   * comparte este esquema pero nunca llega a crear el pedido con él — lo crea
+   * la notificación de Redsys, una vez que el banco confirma el cobro.
+   */
+  formaDePago: z.enum(['transferencia', 'bizum']).optional(),
   transporte: z.enum(['consolacion', 'mensajeria']),
+  /** Fecha límite deseada, sólo con transporte Consolación. Vacío = sin fecha concreta. */
+  fechaLimite: z.string().optional(),
   lineas: z
     .array(
       z.object({
@@ -50,6 +58,13 @@ export default defineEventHandler(async (event) => {
   }
   const datos = validacion.data
 
+  // Este endpoint sólo crea pedidos ya decididos por transferencia o Bizum: si
+  // llega sin forma de pago (o con "tarjeta", que no es una opción válida aquí),
+  // es que algo en el cliente se ha saltado el paso, y no se adivina qué poner.
+  if (!datos.formaDePago) {
+    throw createError({ statusCode: 400, statusMessage: 'Falta indicar cómo se va a pagar.' })
+  }
+
   const almacen = useStorage('pedidos')
 
   // Un reintento tras un timeout no puede crear un segundo pedido en Holded.
@@ -63,7 +78,7 @@ export default defineEventHandler(async (event) => {
       ...datos,
       contactoConocido: sesion?.email === datos.cliente.email ? sesion.contactoId : null,
     },
-    datos.modo === 'b2b' ? 'transferencia' : 'bizum',
+    datos.formaDePago,
   )
 
   await almacen.setItem(datos.claveIdempotencia, { id })

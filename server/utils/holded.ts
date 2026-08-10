@@ -150,6 +150,11 @@ export function listarContactos(): Promise<ContactoHolded[]> {
   return listarTodo<ContactoHolded>('/contacts')
 }
 
+/** Ficha completa de un contacto por id. */
+export function obtenerContacto(id: string): Promise<ContactoHolded> {
+  return peticion<ContactoHolded>(`/contacts/${id}`)
+}
+
 /** Busca por email exacto. Devuelve null si no existe. */
 export async function buscarContactoPorEmail(email: string): Promise<ContactoHolded | null> {
   const datos = await peticion<{ items: ContactoHolded[] }>('/contacts', {

@@ -5,6 +5,14 @@ export type { Modo }
 export interface Delegacion {
   id: string
   nombre: string
+  /** Sólo se conocen tras pedir la ficha completa en la bienvenida. */
+  email?: string | null
+  direccion?: {
+    address: string | null
+    city: string | null
+    province: string | null
+    postal_code: string | null
+  } | null
 }
 
 /**
@@ -21,19 +29,19 @@ export interface Delegacion {
 export function useModo() {
   const cookieModo = useCookie<Modo>('mcm_modo', {
     default: () => 'b2c',
-    maxAge: 60 * 60 * 24 * 365,
+    maxAge: 60 * 60 * 24 * 400,
     sameSite: 'lax',
   })
 
   const cookieDelegacion = useCookie<Delegacion | null>('mcm_delegacion', {
     default: () => null,
-    maxAge: 60 * 60 * 24 * 365,
+    maxAge: 60 * 60 * 24 * 400,
     sameSite: 'lax',
   })
 
   const cookieElegido = useCookie<'1' | null>('mcm_modo_elegido', {
     default: () => null,
-    maxAge: 60 * 60 * 24 * 365,
+    maxAge: 60 * 60 * 24 * 400,
     sameSite: 'lax',
   })
 
@@ -74,7 +82,7 @@ export function useModo() {
 
   /** Cómo llamar a quien está comprando ahora mismo. */
   const nombreModo = computed(() =>
-    modo.value === 'b2b' ? (delegacion.value?.nombre ?? 'Delegación') : 'Pedido personal',
+    modo.value === 'b2b' ? (delegacion.value?.nombre ?? 'MCM Local') : 'Pedido personal',
   )
 
   return {

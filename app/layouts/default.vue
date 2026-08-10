@@ -39,10 +39,13 @@ useHead({
   <div class="min-h-screen">
     <header class="sticky top-0 z-30 border-b border-borde bg-lienzo/90 backdrop-blur">
       <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-4">
-        <NuxtLink to="/" class="mr-auto leading-tight">
-          <span class="block font-semibold">Tienda MCM</span>
-          <span class="hidden text-xs text-tinta-suave sm:block">
-            Movimiento Consolación para el Mundo
+        <NuxtLink to="/" class="mr-auto flex items-center gap-2 leading-tight">
+          <LogoMCM class="size-8 shrink-0" />
+          <span>
+            <span class="block font-semibold">Tienda MCM</span>
+            <span class="hidden text-xs text-tinta-suave sm:block">
+              Movimiento Consolación para el Mundo
+            </span>
           </span>
         </NuxtLink>
 
@@ -62,7 +65,7 @@ useHead({
         <NuxtLink
           to="/bienvenida"
           class="flex items-center gap-2 rounded-lg border border-borde px-2.5 py-1.5 text-xs transition hover:border-tinta-suave"
-          :title="esDelegacion ? 'Cambiar de delegación' : 'Cambiar tipo de pedido'"
+          :title="esDelegacion ? 'Cambiar de MCM Local' : 'Cambiar tipo de pedido'"
         >
           <span
             class="size-1.5 rounded-full"
@@ -84,9 +87,11 @@ useHead({
 
     <slot />
 
-    <footer class="mx-auto max-w-7xl px-4 py-10">
+    <footer class="mx-auto max-w-7xl space-y-3 px-4 py-10">
+      <ContactoAyuda variante="compacta" />
+
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-tinta-suave">
-        <span>Asociación Juvenil Movimiento Consolación para el Mundo</span>
+        <span>Movimiento Consolación para el Mundo</span>
         <NuxtLink
           v-if="sesion?.autenticado"
           to="/mis-pedidos"
@@ -105,7 +110,7 @@ useHead({
           {{ legal.texto }}
         </a>
       </div>
-      <p v-if="delegacion" class="mt-2 text-xs text-tinta-suave">
+      <p v-if="delegacion" class="text-xs text-tinta-suave">
         Estás pidiendo como <strong class="font-medium">{{ delegacion.nombre }}</strong
         >.
       </p>

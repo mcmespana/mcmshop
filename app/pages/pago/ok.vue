@@ -16,12 +16,18 @@ useSeoMeta({ title: 'Pago recibido' })
 
 <template>
   <main class="mx-auto max-w-lg px-4 py-16 text-center">
-    <div class="rounded-tarjeta border border-borde bg-lienzo-alto p-8">
-      <h1 class="text-xl font-semibold">Pago recibido</h1>
-      <p class="mt-2 text-sm text-tinta-suave">
+    <div class="mcm-animar-entrada rounded-tarjeta border border-borde bg-lienzo-alto p-8">
+      <IconoExito class="mx-auto" />
+      <h1 class="mt-2 text-2xl font-semibold">¡Pago recibido!</h1>
+      <p class="mx-auto mt-2 max-w-sm text-sm text-tinta-suave">
         Gracias. Te llega un correo con el detalle del pedido. Si has elegido mensajería, te
         confirmamos el coste del envío antes de mandar nada.
       </p>
+
+      <div class="mx-auto mt-6 max-w-sm text-left">
+        <ContactoAyuda variante="destacada" />
+      </div>
+
       <div class="mt-6 flex flex-wrap justify-center gap-2">
         <NuxtLink
           to="/mis-pedidos"

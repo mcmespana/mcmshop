@@ -38,6 +38,11 @@ export interface DatosCliente {
 export interface SolicitudPedido {
   modo: 'b2b' | 'b2c'
   transporte: 'consolacion' | 'mensajeria'
+  /**
+   * Fecha límite deseada de entrega, sólo relevante con transporte Consolación.
+   * Formato ISO "AAAA-MM-DD". Ausente o vacío = sin fecha concreta.
+   */
+  fechaLimite?: string
   lineas: LineaSolicitada[]
   cliente: DatosCliente
   personaContacto?: string
@@ -58,6 +63,12 @@ const TEXTO_TRANSPORTE = {
   consolacion: 'Transporte Consolación (lo lleva alguien de la Familia Consolación)',
   mensajeria: 'Mensajería urgente — pendiente de presupuestar y añadir al pedido',
 } as const
+
+function formatearFecha(iso: string): string {
+  const fecha = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(fecha.getTime())) return iso
+  return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 /**
  * Convierte el carrito en líneas de Holded.
@@ -191,8 +202,13 @@ export async function crearPedidoCompleto(
   }[formaDePago]
 
   const notas = [
-    `Pedido hecho desde la tienda web (${solicitud.modo === 'b2b' ? 'delegación' : 'particular'}).`,
+    `Pedido hecho desde la tienda web (${solicitud.modo === 'b2b' ? 'MCM Local' : 'particular'}).`,
     `Transporte: ${TEXTO_TRANSPORTE[solicitud.transporte]}.`,
+    solicitud.transporte === 'consolacion'
+      ? solicitud.fechaLimite
+        ? `Fecha límite deseada: ${formatearFecha(solicitud.fechaLimite)}.`
+        : 'Sin fecha límite concreta para la entrega.'
+      : null,
     `Pago: ${textoPago}.`,
     solicitud.personaContacto ? `Persona de contacto: ${solicitud.personaContacto}.` : null,
     solicitud.cliente.telefono ? `Teléfono: ${solicitud.cliente.telefono}.` : null,
