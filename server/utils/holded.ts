@@ -145,6 +145,11 @@ export interface ContactoHolded {
   } | null
 }
 
+/** Contactos, paginando. Sólo para uso interno del servidor. */
+export function listarContactos(): Promise<ContactoHolded[]> {
+  return listarTodo<ContactoHolded>('/contacts')
+}
+
 /** Busca por email exacto. Devuelve null si no existe. */
 export async function buscarContactoPorEmail(email: string): Promise<ContactoHolded | null> {
   const datos = await peticion<{ items: ContactoHolded[] }>('/contacts', {
@@ -178,21 +183,21 @@ export async function crearContacto(datos: NuevoContacto): Promise<{ id: string 
  * 2. `shipping` NO es un tipo de línea válido en la v2 (el enum sólo acepta
  *    `product`, `service` y `title`), al contrario de lo que decía el brief.
  *    El transporte va como línea de tipo `service`.
- * 3. **`variant_id` se ignora al crear**: se envía y vuelve `null`. Aparece en el
- *    modelo de lectura, pero no se puede fijar desde la API.
- * 4. **El `sku` de la línea también se pisa** con el del producto padre: se envió
- *    `PAN-COM-VER` y Holded guardó `PAN-`.
- * 5. El pedido nace como **borrador y sin número**. El número se asigna al
+ * 3. **La variante se manda dentro de `product_id`, con almohadilla**:
+ *    `"<idProducto>#<idVariante>"`. Es una sintaxis que la API sólo documenta para
+ *    los `pack_items` de un producto, pero funciona igual en las líneas de pedido.
+ *    Los campos `variant_id`, `variantId` y `variant` se ignoran los tres al crear
+ *    (comprobado con las cuatro formas en un mismo pedido: sólo funcionó ésta).
+ *    Con la almohadilla, Holded además resuelve solo el SKU correcto de la
+ *    variante; sin ella, pisa el `sku` de la línea con el del producto padre.
+ * 4. El pedido nace como **borrador y sin número**. El número se asigna al
  *    aprobarlo (`POST /sales-orders/{id}/approve`).
- * 6. Los guiones de los tags se eliminan: `tienda-web` se guarda `tiendaweb`.
- *
- * Consecuencia de 3 y 4: `description` es el **único** sitio donde sobrevive qué
- * variante se ha pedido. Por eso lleva la etiqueta y además el SKU de la variante.
+ * 5. Los guiones de los tags se eliminan: `tienda-web` se guarda `tiendaweb`.
  */
 export interface LineaPedido {
   type: 'product' | 'service' | 'title'
+  /** Producto, o `"<idProducto>#<idVariante>"` para pedir una variante concreta. */
   product_id?: string
-  variant_id?: string
   name: string
   description?: string
   units: number

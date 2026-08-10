@@ -41,6 +41,30 @@
   }
 }
 
+/*
+  Tinte según para quién es el pedido. No es decoración: a las dos horas pidiendo
+  camisetas conviene ver de un vistazo si estás comprando para tu delegación o
+  para ti. El cambio es deliberadamente sutil — el color fuerte lo ponen las
+  fotos de producto, y dos tiendas de colores distintos parecerían dos webs.
+
+  Particular  → el verde de siempre.
+  Delegación  → azul, y el lienzo con una pizca de frío.
+*/
+html[data-modo='b2b'] {
+  --color-acento: oklch(0.45 0.11 250);
+  --color-acento-alto: oklch(0.39 0.12 250);
+  --color-lienzo: oklch(0.983 0.005 250);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-modo='b2b'] {
+    --color-acento: oklch(0.74 0.11 250);
+    --color-acento-alto: oklch(0.82 0.1 250);
+    --color-sobre-acento: oklch(0.18 0.03 250);
+    --color-lienzo: oklch(0.19 0.012 250);
+  }
+}
+
 html {
   background-color: var(--color-lienzo);
   color: var(--color-tinta);
