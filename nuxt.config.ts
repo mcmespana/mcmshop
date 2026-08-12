@@ -23,7 +23,7 @@ export default defineNuxtConfig({
       ],
       meta: [
         // Color de la barra del navegador en móvil: el marino de la marca.
-        { name: 'theme-color', content: '#203080' },
+        { name: 'theme-color', content: '#13684b' },
       ],
     },
   },
