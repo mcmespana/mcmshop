@@ -47,14 +47,18 @@ useSeoMeta({ title: 'Bienvenido' })
 
 <template>
   <div class="relative flex min-h-screen flex-col overflow-hidden bg-lienzo">
-    <!-- Decoración de fondo: iconos muy tenues, sólo textura, nunca legibles como contenido -->
-    <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+    <!--
+      Decoración de fondo: iconos muy tenues, sólo textura, nunca legibles como
+      contenido. Sin z negativo: el contenedor pinta `bg-lienzo`, así que un
+      `-z-10` los dejaría por detrás de ese fondo y no se verían.
+    -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <IconoCamiseta class="absolute -top-8 -right-10 size-56 rotate-12 opacity-10" />
       <IconoPanuelo class="absolute top-1/2 -left-16 size-48 -rotate-12 opacity-10" />
       <IconoSudadera class="absolute -bottom-14 right-1/4 size-52 rotate-6 opacity-10" />
     </div>
 
-    <main class="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-5 py-12">
+    <main class="relative mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-5 py-12">
       <div class="mcm-animar-entrada mb-8 flex items-center gap-4">
         <LogoMCM animado class="size-14 shrink-0" />
         <div>
@@ -162,8 +166,9 @@ useSeoMeta({ title: 'Bienvenido' })
       </div>
     </main>
 
-    <footer class="mx-auto w-full max-w-lg px-5 pb-8 text-xs text-tinta-suave">
-      Movimiento Consolación para el Mundo
+    <footer class="relative mx-auto w-full max-w-lg space-y-2 px-5 pb-8">
+      <LogoInstitucional :ancho="140" />
+      <p class="text-xs text-tinta-suave">Movimiento Consolación para el Mundo</p>
     </footer>
   </div>
 </template>

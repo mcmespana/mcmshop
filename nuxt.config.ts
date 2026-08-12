@@ -8,6 +8,26 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  app: {
+    head: {
+      /*
+        El SVG lo usan los navegadores modernos y escala sin pixelarse; los PNG
+        cubren al resto, y el .ico va para quien lo pide a pelo en la raíz sin
+        mirar estas etiquetas. El de 180 es el que usa iOS al añadir a inicio.
+      */
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32.png' },
+        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16.png' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+      ],
+      meta: [
+        // Color de la barra del navegador en móvil: el marino de la marca.
+        { name: 'theme-color', content: '#203080' },
+      ],
+    },
+  },
+
   vite: {
     plugins: [tailwindcss()],
   },
