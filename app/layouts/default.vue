@@ -88,6 +88,10 @@ useHead({
     <slot />
 
     <footer class="mx-auto max-w-7xl space-y-3 px-4 py-10">
+      <div class="border-t border-borde pt-6">
+        <LogoInstitucional :ancho="130" />
+      </div>
+
       <ContactoAyuda variante="compacta" />
 
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-tinta-suave">
