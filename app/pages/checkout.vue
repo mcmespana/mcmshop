@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { LineaCarrito } from '~/composables/useCarrito'
+
 const { lineas, totalCentimos, unidades, vacio, vaciar } = useCarrito()
 const { modo, delegacion, proponer } = useModo()
 
@@ -82,6 +84,16 @@ const error = ref<string | null>(null)
 const pedidoHecho = ref(false)
 
 /**
+ * Foto del pedido para el recibo. Hay que quedársela antes de vaciar el carrito:
+ * en cuanto se vacía, `lineas` se queda a cero y el tique saldría en blanco.
+ */
+const recibo = ref<{
+  lineas: LineaCarrito[]
+  totalCentimos: number
+  referencia: string | null
+} | null>(null)
+
+/**
  * Cómo se paga:
  *  - B2C: bizum, transferencia o tarjeta, las tres a la vista.
  *  - B2B: transferencia por delante; bizum y tarjeta viven en "otros métodos".
@@ -162,7 +174,7 @@ async function enviar() {
       return
     }
 
-    await $fetch('/api/pedidos', {
+    const creado = await $fetch('/api/pedidos', {
       method: 'POST',
       body: {
         claveIdempotencia: claveIdempotencia.value,
@@ -170,6 +182,12 @@ async function enviar() {
         ...datosComunes(),
       },
     })
+
+    recibo.value = {
+      lineas: lineas.value.map((l) => ({ ...l })),
+      totalCentimos: totalCentimos.value,
+      referencia: creado?.id ?? null,
+    }
     pedidoHecho.value = true
     vaciar()
   } catch (e) {
@@ -184,30 +202,35 @@ useSeoMeta({ title: 'Finalizar pedido' })
 
 <template>
   <main class="mx-auto max-w-3xl px-4 py-8">
-    <!-- Confirmación: sale impresa como un tique -->
-    <TicketImpresora v-if="pedidoHecho">
-      <IconoExito class="mx-auto" />
-      <h1 class="mt-2 text-2xl font-semibold">¡Pedido recibido!</h1>
-      <p class="mx-auto mt-2 max-w-md text-sm text-tinta-suave">
-        Gracias{{ formulario.nombre ? `, ${formulario.nombre.split(' ')[0]}` : '' }}. Te hemos
-        mandado un correo con todo el detalle
+    <!-- Confirmación: el pedido sale impreso en un tique -->
+    <div v-if="pedidoHecho" class="mx-auto max-w-sm">
+      <TicketImpresora>
+        <ReciboPedido
+          :lineas="recibo?.lineas"
+          :total-centimos="recibo?.totalCentimos ?? 0"
+          :referencia="recibo?.referencia"
+          :metodo-pago="formaDePago"
+          :transporte="formulario.transporte"
+          sello="Confirmado"
+        />
+      </TicketImpresora>
+
+      <h1 class="mcm-animar-entrada mt-8 text-center text-2xl font-semibold">¡Pedido recibido!</h1>
+      <p class="mcm-animar-entrada mt-2 text-center text-sm text-tinta-suave">
+        Gracias{{ formulario.nombre ? `, ${formulario.nombre.split(' ')[0]}` : '' }}.
         <template v-if="formulario.transporte === 'mensajeria'">
-          y te confirmamos el coste del envío antes de mandar nada.
+          Te confirmamos el coste del envío antes de mandar nada.
         </template>
       </p>
 
       <div
         v-if="formaDePago === 'bizum' || formaDePago === 'transferencia'"
-        class="mx-auto mt-6 max-w-sm text-left"
+        class="mcm-animar-entrada mt-6"
       >
         <InstruccionesPago :metodo="formaDePago" :concepto="formulario.nombre || formulario.email" />
       </div>
 
-      <div class="mx-auto mt-4 max-w-sm text-left">
-        <ContactoAyuda variante="destacada" />
-      </div>
-
-      <div class="mt-6 flex flex-wrap justify-center gap-2">
+      <div class="mcm-animar-entrada mt-6 flex flex-wrap justify-center gap-2">
         <NuxtLink
           to="/mis-pedidos"
           class="rounded-lg bg-acento px-4 py-2.5 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto"
@@ -221,7 +244,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
           Volver al catálogo
         </NuxtLink>
       </div>
-    </TicketImpresora>
+    </div>
 
     <div v-else-if="vacio" class="rounded-tarjeta border border-borde bg-lienzo-alto p-8 text-center">
       <p class="font-medium">Tu carrito está vacío</p>

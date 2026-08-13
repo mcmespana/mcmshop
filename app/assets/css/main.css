@@ -25,6 +25,16 @@
   --font-sans: 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --radius-tarjeta: 0.875rem;
+
+  /*
+    La impresora de tiques es un cacharro de plástico oscuro, y lo es en los dos
+    temas: sus colores no pueden salir de `tinta`/`lienzo` porque esos se
+    invierten en oscuro y dejarían la carcasa blanca y la ranura brillando.
+  */
+  --color-impresora: oklch(0.3 0.012 65);
+  --color-impresora-tinta: oklch(0.88 0.006 85);
+  --color-pantalla: oklch(0.17 0.012 65);
+  --color-ranura: oklch(0.12 0.01 65);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -171,59 +181,135 @@ input[type='checkbox'] {
 }
 
 /*
-  Impresora de tique en la pantalla de confirmación (ver TicketImpresora.vue).
-  El "papel" ya está ahí desde el principio con su contenido; lo que se anima
-  es un recorte (clip-path inset) que lo va revelando de arriba abajo a pasos,
-  como si saliera línea a línea de la impresora, en vez de una barra de carga
-  continua. El diente inferior es el truco clásico de dos gradientes a 45°
-  formando triángulos alternos del color del fondo — no hace falta SVG.
+  Impresora de tiques de la pantalla de confirmación (ver TicketImpresora.vue).
+
+  El papel está de verdad fuera de la ventana y baja hasta su sitio; la ventana
+  tiene overflow oculto, así que se ve papel saliendo por la ranura. El avance no
+  es continuo: empuja un tramo, para, empuja otro. De ahí los pares de keyframes
+  repetidos con `linear` — cada pareja es un empujón y su pausa, como el paso a
+  paso de una térmica sacando líneas.
+
+  Los colores de la carcasa viven en el `@theme` de arriba y no se invierten en
+  oscuro; sólo se aclara un punto para que no se funda con el lienzo oscuro.
 */
-.mcm-impresora-cuerpo {
-  background: var(--color-tinta);
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-impresora: oklch(0.36 0.01 65);
+  }
 }
 
-.mcm-ticket-ventana {
-  overflow: hidden;
-  border-radius: 0 0 var(--radius-tarjeta) var(--radius-tarjeta);
+.mcm-impresora {
+  background: var(--color-impresora);
+  box-shadow:
+    0 20px 36px -20px rgba(0, 0, 0, 0.55),
+    0 6px 14px -8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5);
 }
 
-.mcm-ticket-papel {
-  position: relative;
+.mcm-pantalla {
+  background: var(--color-pantalla);
+  box-shadow: inset 0 0 20px 4px rgba(0, 0, 0, 0.55);
+}
+
+/* El papel: fondo de tique y sombra propia al colgar de la ranura. */
+.mcm-recibo {
+  display: block;
   background-color: var(--color-lienzo-alto);
-  border: 1px solid var(--color-borde);
-  border-top: none;
-  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.25);
-  padding-bottom: 14px;
-  background-image:
-    linear-gradient(135deg, var(--color-lienzo) 50%, transparent 50%),
-    linear-gradient(45deg, var(--color-lienzo) 50%, transparent 50%);
-  background-position:
-    left bottom,
-    left bottom;
-  background-repeat: repeat-x;
-  background-size: 16px 14px;
+  color: var(--color-tinta);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  box-shadow:
+    0 8px 24px -6px rgba(0, 0, 0, 0.22),
+    0 1px 0 rgba(0, 0, 0, 0.06);
 }
 
-@keyframes mcm-ticket-revelar {
-  from {
-    clip-path: inset(0 0 100% 0);
+.mcm-papel {
+  position: relative;
+  transform: translateY(calc(-100% + 2px));
+}
+
+.mcm-papel--completado {
+  transform: translateY(0);
+}
+
+@keyframes mcm-imprimir {
+  0% {
+    transform: translateY(calc(-100% + 2px));
   }
-  to {
-    clip-path: inset(0 0 0% 0);
+  7.5% {
+    transform: translateY(-91%);
+  }
+  10.5% {
+    transform: translateY(-91%);
+  }
+  18% {
+    transform: translateY(-81%);
+  }
+  21% {
+    transform: translateY(-81%);
+  }
+  28.5% {
+    transform: translateY(-70%);
+  }
+  31.5% {
+    transform: translateY(-70%);
+  }
+  39% {
+    transform: translateY(-58%);
+  }
+  42% {
+    transform: translateY(-58%);
+  }
+  49.5% {
+    transform: translateY(-45%);
+  }
+  52.5% {
+    transform: translateY(-45%);
+  }
+  60% {
+    transform: translateY(-32%);
+  }
+  63% {
+    transform: translateY(-32%);
+  }
+  70.5% {
+    transform: translateY(-20%);
+  }
+  73.5% {
+    transform: translateY(-20%);
+  }
+  81% {
+    transform: translateY(-10%);
+  }
+  84% {
+    transform: translateY(-10%);
+  }
+  91.5% {
+    transform: translateY(-3%);
+  }
+  94.5% {
+    transform: translateY(-3%);
+  }
+  100% {
+    transform: translateY(0);
   }
 }
 
-.mcm-ticket-imprimir {
-  clip-path: inset(0 0 100% 0);
-  animation: mcm-ticket-revelar 1.6s steps(24, end) 200ms both;
+.mcm-papel--imprimiendo {
+  animation: mcm-imprimir 1.75s linear both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .mcm-ticket-imprimir {
-    animation: none;
-    clip-path: none;
-  }
+/* Barras irregulares: de lejos pasa por un código de barras impreso. */
+.mcm-codigo-barras {
+  background-image: repeating-linear-gradient(
+    90deg,
+    currentColor 0 1px,
+    transparent 1px 3px,
+    currentColor 3px 5px,
+    transparent 5px 7px,
+    currentColor 7px 8px,
+    transparent 8px 11px
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {
