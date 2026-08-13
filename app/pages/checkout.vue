@@ -184,8 +184,8 @@ useSeoMeta({ title: 'Finalizar pedido' })
 
 <template>
   <main class="mx-auto max-w-3xl px-4 py-8">
-    <!-- Confirmación: pantalla de fiesta -->
-    <div v-if="pedidoHecho" class="mcm-animar-entrada rounded-tarjeta border border-borde bg-lienzo-alto p-8 text-center">
+    <!-- Confirmación: sale impresa como un tique -->
+    <TicketImpresora v-if="pedidoHecho">
       <IconoExito class="mx-auto" />
       <h1 class="mt-2 text-2xl font-semibold">¡Pedido recibido!</h1>
       <p class="mx-auto mt-2 max-w-md text-sm text-tinta-suave">
@@ -221,7 +221,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
           Volver al catálogo
         </NuxtLink>
       </div>
-    </div>
+    </TicketImpresora>
 
     <div v-else-if="vacio" class="rounded-tarjeta border border-borde bg-lienzo-alto p-8 text-center">
       <p class="font-medium">Tu carrito está vacío</p>

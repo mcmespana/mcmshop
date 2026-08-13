@@ -170,6 +170,62 @@ input[type='checkbox'] {
   animation: mcm-confeti-pop 950ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/*
+  Impresora de tique en la pantalla de confirmación (ver TicketImpresora.vue).
+  El "papel" ya está ahí desde el principio con su contenido; lo que se anima
+  es un recorte (clip-path inset) que lo va revelando de arriba abajo a pasos,
+  como si saliera línea a línea de la impresora, en vez de una barra de carga
+  continua. El diente inferior es el truco clásico de dos gradientes a 45°
+  formando triángulos alternos del color del fondo — no hace falta SVG.
+*/
+.mcm-impresora-cuerpo {
+  background: var(--color-tinta);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.mcm-ticket-ventana {
+  overflow: hidden;
+  border-radius: 0 0 var(--radius-tarjeta) var(--radius-tarjeta);
+}
+
+.mcm-ticket-papel {
+  position: relative;
+  background-color: var(--color-lienzo-alto);
+  border: 1px solid var(--color-borde);
+  border-top: none;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.25);
+  padding-bottom: 14px;
+  background-image:
+    linear-gradient(135deg, var(--color-lienzo) 50%, transparent 50%),
+    linear-gradient(45deg, var(--color-lienzo) 50%, transparent 50%);
+  background-position:
+    left bottom,
+    left bottom;
+  background-repeat: repeat-x;
+  background-size: 16px 14px;
+}
+
+@keyframes mcm-ticket-revelar {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0% 0);
+  }
+}
+
+.mcm-ticket-imprimir {
+  clip-path: inset(0 0 100% 0);
+  animation: mcm-ticket-revelar 1.6s steps(24, end) 200ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mcm-ticket-imprimir {
+    animation: none;
+    clip-path: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

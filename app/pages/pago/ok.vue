@@ -16,7 +16,7 @@ useSeoMeta({ title: 'Pago recibido' })
 
 <template>
   <main class="mx-auto max-w-lg px-4 py-16 text-center">
-    <div class="mcm-animar-entrada rounded-tarjeta border border-borde bg-lienzo-alto p-8">
+    <TicketImpresora>
       <IconoExito class="mx-auto" />
       <h1 class="mt-2 text-2xl font-semibold">¡Pago recibido!</h1>
       <p class="mx-auto mt-2 max-w-sm text-sm text-tinta-suave">
@@ -42,6 +42,6 @@ useSeoMeta({ title: 'Pago recibido' })
           Volver al catálogo
         </NuxtLink>
       </div>
-    </div>
+    </TicketImpresora>
   </main>
 </template>
