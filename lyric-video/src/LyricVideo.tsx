@@ -62,7 +62,7 @@ const Sparks: React.FC<{ time: number; amount: number }> = ({ time, amount }) =>
               height: sz,
               opacity:
                 amount *
-                (0.25 + 0.55 * Math.abs(Math.sin(time * 2.1 + i))) *
+                (0.3 + 0.4 * (0.5 + 0.5 * Math.sin(time * 1.7 + i))) *
                 interpolate(drift, [-200, 100, 1000, 1400], [0, 1, 1, 0], {
                   extrapolateLeft: "clamp",
                   extrapolateRight: "clamp",
@@ -101,9 +101,9 @@ export const LyricVideo: React.FC = () => {
   const variant = variantFor(t);
   const inChorus = t >= 58.9 && t < 77;
 
-  // Pulso global al ritmo, más marcado cuanto más energía tiene la sección.
-  const pumpAmount = kf(t, [12.9, 28.6, 48.75, 58.9, 59.6], [0, 0.004, 0.009, 0.012, 0.022]);
-  const pump = 1 + beat * pumpAmount;
+  // El ritmo NO se aplica al frame entero ni al texto: escalar toda la
+  // imagen en cada negra se lee como un tirón, no como música. El pulso
+  // vive sólo en los monigotes, donde se lee como que respiran.
 
   const fadeIn = kf(t, [0, 1.2], [0, 1]);
   const fadeOut = kf(t, [CUT_END - 1.6, CUT_END], [1, 0]);
@@ -124,7 +124,7 @@ export const LyricVideo: React.FC = () => {
       />
 
       <AbsoluteFill style={{ opacity: fadeIn * fadeOut }}>
-        <AbsoluteFill style={{ scale: (camera * pump).toFixed(4), transformOrigin: "50% 50%" }}>
+        <AbsoluteFill style={{ scale: camera.toFixed(4), transformOrigin: "50% 50%" }}>
           <Paper warmth={warmth} gridOffset={gridOffset} scale={1} />
 
           {/* ── El hilo amarillo: el camino. Pasa por detrás de los monigotes, como en el póster. ── */}
@@ -172,8 +172,8 @@ export const LyricVideo: React.FC = () => {
           <Sparks time={t} amount={kf(t, [58.6, 60, 76.8, 78.4], [0, 1, 1, 0])} />
         </AbsoluteFill>
 
-        {/* ── Capa de texto: siempre nítida, sin zoom de cámara ── */}
-        <AbsoluteFill style={{ scale: pump.toFixed(4) }}>
+        {/* ── Capa de texto: siempre nítida, sin zoom ni pulso ── */}
+        <AbsoluteFill>
           {/* Intro: lockup del lema */}
           {t < 12.6 ? (
             <AbsoluteFill
@@ -239,7 +239,7 @@ export const LyricVideo: React.FC = () => {
                       inset: 0,
                       borderRadius: 999,
                       background: `linear-gradient(100deg, ${COLORS.yellow}, ${COLORS.gold})`,
-                      opacity: 0.42 + bar * 0.16,
+                      opacity: 0.44 + bar * 0.07,
                       rotate: "-1.2deg",
                       filter: "blur(1.5px)",
                       transformOrigin: "0% 50%",

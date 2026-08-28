@@ -102,6 +102,13 @@ Las curvas maestras (`warmth`, `tangle`, `camera`, `glow`) son listas de
 keyframes en segundos al principio de `LyricVideo.tsx`: para una sección nueva
 basta con añadirles un punto.
 
+## Playbook
+
+En [PLAYBOOK.md](./PLAYBOOK.md) están los aprendizajes de este montaje: cómo
+extraer assets y fuentes de un PDF, cómo medir tempo y secciones del audio,
+las trampas conocidas (fuentes que no cargan, pulsos que dan el tirón) y un
+checklist para repetirlo en otro proyecto.
+
 ## Créditos de los materiales
 
 Los monigotes, la textura de papel, el logo y las fuentes `LavaPro-Rough` /

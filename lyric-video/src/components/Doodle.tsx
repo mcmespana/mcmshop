@@ -78,7 +78,7 @@ export const Doodle: React.FC<{
         opacity: opacity * s * gone,
         translate: `-50% calc(-50% + ${bob.toFixed(2)}px)`,
         rotate: `${rotate + tilt}deg`,
-        scale: (interpolate(s, [0, 1], [0.72, 1]) * (1 + pulse * 0.045)).toFixed(4),
+        scale: (interpolate(s, [0, 1], [0.72, 1]) * (1 + pulse * 0.03)).toFixed(4),
         filter: `saturate(${1 - faded * 0.9}) brightness(${1 + faded * 0.06}) blur(${blur}px)`,
         transform: flip ? "scaleX(-1)" : undefined,
         pointerEvents: "none",

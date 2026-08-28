@@ -42,18 +42,40 @@ export const BAR = 4 * BEAT;
 /** Primer tiempo fuerte de la estrofa 1. */
 export const BEAT_ANCHOR = 12.91;
 
-/** Pulso 0→1 que decae en cada negra, para animar al ritmo. */
-export const beatPulse = (timeInSeconds: number, decay = 0.55) => {
-  const p = (timeInSeconds - BEAT_ANCHOR) / BEAT;
-  const frac = p - Math.floor(p);
-  if (p < 0) return 0;
-  return Math.max(0, 1 - frac / decay);
+/**
+ * Curva suave (C1): sale de 0 y llega a 1 con pendiente cero en ambos
+ * extremos. Es la clave para que un pulso no dé el tirón.
+ */
+const smoothstep = (x: number) => {
+  const c = Math.min(1, Math.max(0, x));
+  return c * c * (3 - 2 * c);
 };
 
-/** Igual pero por compás (cada 4 negras): para acentos grandes. */
-export const barPulse = (timeInSeconds: number, decay = 0.35) => {
-  const p = (timeInSeconds - BEAT_ANCHOR) / BAR;
-  const frac = p - Math.floor(p);
+/**
+ * Envolvente de un golpe: sube en `attack`, baja en `decay` y se queda
+ * quieta en 0 hasta el siguiente. Sin saltos de un frame a otro.
+ */
+const envelope = (frac: number, attack: number, decay: number) => {
+  if (frac < attack) return smoothstep(frac / attack);
+  if (frac < attack + decay) return 1 - smoothstep((frac - attack) / decay);
+  return 0;
+};
+
+/**
+ * Pulso 0→1 en cada negra.
+ * `attack` y `decay` van en fracción de negra: por defecto sube en unos
+ * 3 frames (a 30 fps) y baja en unos 9. Se apoya en el ritmo sin dar
+ * el respingo de un diente de sierra.
+ */
+export const beatPulse = (timeInSeconds: number, attack = 0.26, decay = 0.5) => {
+  const p = (timeInSeconds - BEAT_ANCHOR) / BEAT;
   if (p < 0) return 0;
-  return Math.max(0, 1 - frac / decay);
+  return envelope(p - Math.floor(p), attack, decay);
+};
+
+/** Igual pero por compás (cada 4 negras): para acentos grandes y lentos. */
+export const barPulse = (timeInSeconds: number, attack = 0.06, decay = 0.3) => {
+  const p = (timeInSeconds - BEAT_ANCHOR) / BAR;
+  if (p < 0) return 0;
+  return envelope(p - Math.floor(p), attack, decay);
 };
