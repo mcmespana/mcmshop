@@ -75,9 +75,19 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    // El catálogo se sirve pre-renderizado y se revalida por detrás.
-    '/': { isr: 300 },
-    '/api/catalogo': { isr: 300 },
+    /*
+      El catálogo NO se cachea en el CDN. La ISR de Vercel guarda una única copia
+      por ruta, ignorando la query y las cookies: la primera respuesta que se
+      generase (normalmente la de un particular, B2C) se servía después a todo el
+      mundo, así que las delegaciones veían el catálogo B2C y los productos con
+      sólo el tag `b2b` no aparecían nunca.
+
+      No hace falta esa caché: `obtenerCatalogo()` ya guarda el catálogo de Holded
+      cinco minutos con stale-while-revalidate, que es lo caro. Lo único que se
+      hace por petición es filtrar por público, que son unos milisegundos.
+    */
+    '/': { isr: false },
+    '/api/catalogo': { isr: false },
     // Nada de cachear lo que depende de la sesión o muta datos.
     '/checkout': { isr: false },
     '/api/pedidos': { isr: false },
