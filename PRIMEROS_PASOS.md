@@ -45,7 +45,7 @@ acabado visual que se note.
 |---|---|
 | Framework | **Nuxt 4** (Vue 3) |
 | Hosting | **Vercel** |
-| Caché | Nitro (`defineCachedFunction`) + route rules `isr` + Vercel KV |
+| Caché | Nitro (`defineCachedFunction`) + Vercel KV |
 | Imágenes | `@nuxt/image` (optimización automática en Vercel) |
 | Estilos | Tailwind |
 | Auth | Google OAuth 2.0 directo. Sin Supabase, sin Auth0, sin NextAuth |
@@ -58,7 +58,9 @@ acabado visual que se note.
 
 - Nitro trae `defineCachedFunction` con semántica stale-while-revalidate de serie: sirve lo
   cacheado al instante y refresca por detrás usando `event.waitUntil`, sin que el usuario espere.
-- En Vercel se usa la route rule `isr` (no `swr`) para aprovechar la caché nativa de Vercel.
+- El catálogo y la home NO usan la route rule `isr`: la caché de Vercel guarda una copia por
+  ruta ignorando query y cookies, y servía el catálogo B2C a las delegaciones. La caché de
+  Holded ya la da `defineCachedFunction`, que es lo que de verdad cuesta.
 - Nitro integra Vercel KV de forma nativa.
 - `@nuxt/image` + optimización on-demand de Vercel resuelve las fotos de producto.
 
