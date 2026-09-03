@@ -12,6 +12,8 @@ tiene base de datos propia y el panel de administración es el propio Holded.
 | [`PUESTA_EN_MARCHA.md`](./PUESTA_EN_MARCHA.md) | **Empieza por aquí.** Qué hay que configurar en Holded, Google, Resend, Vercel y Redsys |
 | [`HALLAZGOS.md`](./HALLAZGOS.md) | Cómo se comporta de verdad la API de Holded, comprobado contra datos reales |
 | [`PRIMEROS_PASOS.md`](./PRIMEROS_PASOS.md) | Brief original del proyecto |
+| [`design.md`](./design.md) | **Sistema de diseño**, compartido con las otras tres apps MCM. Léelo antes de tocar nada visual |
+| [`design-plans/`](./design-plans/) | Deuda de diseño, en planes numerados y ejecutables |
 
 ## Desarrollo
 
