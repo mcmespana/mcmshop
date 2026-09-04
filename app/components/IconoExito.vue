@@ -13,7 +13,7 @@ const CONFETI = Array.from({ length: 10 }, (_, i) => {
     x: Math.cos(angulo) * radio,
     y: Math.sin(angulo) * radio,
     retraso: `${420 + i * 40}ms`,
-    color: ['bg-acento', 'bg-acento-alto', 'bg-aviso'][i % 3]!,
+    color: ['bg-primary', 'bg-primary-hover', 'bg-warn'][i % 3]!,
   }
 })
 </script>
@@ -35,20 +35,20 @@ const CONFETI = Array.from({ length: 10 }, (_, i) => {
       role="img"
       aria-hidden="true"
     >
-      <circle cx="32" cy="32" r="28" class="fill-acento/10" />
+      <circle cx="32" cy="32" r="28" class="fill-primary/10" />
       <circle
         cx="32"
         cy="32"
         r="26"
         path-length="1"
-        class="mcm-dibujar-circulo stroke-acento"
+        class="mcm-dibujar-circulo stroke-primary"
         stroke-width="3"
         fill="none"
       />
       <path
         d="M19 33.5 L28 42.5 L46 22"
         path-length="1"
-        class="mcm-dibujar-check stroke-acento"
+        class="mcm-dibujar-check stroke-primary"
         stroke-width="4"
         stroke-linecap="round"
         stroke-linejoin="round"

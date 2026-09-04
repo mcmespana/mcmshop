@@ -71,7 +71,7 @@ const iconoVacio = computed(() => {
 </script>
 
 <template>
-  <div class="relative aspect-square overflow-hidden bg-lienzo">
+  <div class="relative aspect-square overflow-hidden bg-background">
     <template v-if="actual">
       <Transition
         mode="out-in"
@@ -95,7 +95,7 @@ const iconoVacio = computed(() => {
       <button
         v-if="hayVarias"
         type="button"
-        class="absolute inset-0 z-10 cursor-pointer focus-visible:ring-2 focus-visible:ring-acento focus-visible:ring-inset focus-visible:outline-none"
+        class="absolute inset-0 z-10 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset focus-visible:outline-none"
         :aria-label="`Ver la siguiente foto de ${alt} (${indice + 1} de ${imagenes.length})`"
         @click="siguiente"
       />
@@ -120,7 +120,7 @@ const iconoVacio = computed(() => {
 
     <div
       v-else
-      class="flex size-full flex-col items-center justify-center gap-2.5 bg-gradient-to-br from-acento/8 via-lienzo to-acento/12"
+      class="flex size-full flex-col items-center justify-center gap-2.5 bg-gradient-to-br from-primary/8 via-background to-primary/12"
     >
       <!-- Trama diagonal muy tenue: da textura sin competir con las tarjetas que sí tienen foto. -->
       <div
@@ -135,7 +135,7 @@ const iconoVacio = computed(() => {
         "
       />
       <component :is="iconoVacio" class="relative size-14 opacity-90" />
-      <span class="relative text-xs text-tinta-suave">Foto en camino</span>
+      <span class="relative text-xs text-muted-foreground">Foto en camino</span>
     </div>
   </div>
 </template>

@@ -22,8 +22,16 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
       ],
       meta: [
-        // Color de la barra del navegador en móvil: el marino de la marca.
-        { name: 'theme-color', content: '#13684b' },
+        /*
+          Color de la barra del navegador en móvil. En claro es el verde de la
+          Tienda —el mismo #13684b del logo y de `--color-acento`—; en oscuro,
+          el lienzo, porque la barra imita a la página y no a la marca.
+
+          Se queda fijo aunque el acento pase a azul en modo delegación, por la
+          misma razón que el logo: algo que cambia de color deja de identificar.
+        */
+        { name: 'theme-color', media: '(prefers-color-scheme: light)', content: '#13684b' },
+        { name: 'theme-color', media: '(prefers-color-scheme: dark)', content: '#161310' },
       ],
     },
   },

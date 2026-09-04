@@ -30,20 +30,22 @@ const LEGALES = [
  * dos horas de estar pidiendo camisetas conviene poder ver de un vistazo si lo
  * estás haciendo para tu delegación o para ti.
  */
+const { atributo: temaAtributo, siguiente: siguienteTema, etiqueta: temaEtiqueta } = useTema()
+
 useHead({
-  htmlAttrs: { lang: 'es', 'data-modo': () => modo.value },
+  htmlAttrs: { lang: 'es', 'data-modo': () => modo.value, 'data-tema': () => temaAtributo.value },
 })
 </script>
 
 <template>
   <div class="min-h-screen">
-    <header class="sticky top-0 z-30 border-b border-borde bg-lienzo/90 backdrop-blur">
+    <header class="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
       <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-4">
         <NuxtLink to="/" class="mr-auto flex items-center gap-2 leading-tight">
           <LogoMCM class="size-8 shrink-0" />
           <span>
             <span class="block font-semibold">Tienda MCM</span>
-            <span class="hidden text-xs text-tinta-suave sm:block">
+            <span class="hidden text-xs text-muted-foreground sm:block">
               Movimiento Consolación para el Mundo
             </span>
           </span>
@@ -52,7 +54,7 @@ useHead({
         <NuxtLink
           v-if="sesion?.autenticado"
           to="/mis-pedidos"
-          class="hidden text-sm text-tinta-suave transition hover:text-tinta sm:block"
+          class="hidden text-sm text-muted-foreground transition hover:text-foreground sm:block"
         >
           Mis pedidos
         </NuxtLink>
@@ -64,21 +66,31 @@ useHead({
         -->
         <NuxtLink
           to="/bienvenida"
-          class="flex items-center gap-2 rounded-lg border border-borde px-2.5 py-1.5 text-xs transition hover:border-tinta-suave"
+          class="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-xs transition hover:border-muted-foreground"
           :title="esDelegacion ? 'Cambiar de MCM Local' : 'Cambiar tipo de pedido'"
         >
           <span
             class="size-1.5 rounded-full"
-            :class="esDelegacion ? 'bg-acento' : 'bg-tinta-suave'"
+            :class="esDelegacion ? 'bg-primary' : 'bg-muted-foreground'"
             aria-hidden="true"
           />
           <span class="max-w-32 truncate font-medium sm:max-w-none">{{ nombreModo }}</span>
-          <span class="text-tinta-suave">Cambiar</span>
+          <span class="text-muted-foreground">Cambiar</span>
         </NuxtLink>
+
+        <button
+          type="button"
+          class="toque flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
+          :title="temaEtiqueta"
+          :aria-label="temaEtiqueta"
+          @click="siguienteTema"
+        >
+          <IconoTema class="size-4" />
+        </button>
 
         <span
           v-if="unidades > 0"
-          class="flex size-7 items-center justify-center rounded-full bg-acento text-xs font-semibold text-sobre-acento tabular-nums lg:hidden"
+          class="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground tabular-nums lg:hidden"
         >
           {{ unidades }}
         </span>
@@ -88,13 +100,13 @@ useHead({
     <slot />
 
     <footer class="mx-auto max-w-7xl space-y-3 px-4 py-10">
-      <div class="border-t border-borde pt-6">
+      <div class="border-t border-border pt-6">
         <LogoInstitucional :ancho="130" />
       </div>
 
       <ContactoAyuda variante="compacta" />
 
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-tinta-suave">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
         <span>Movimiento Consolación para el Mundo</span>
         <NuxtLink
           v-if="sesion?.autenticado"
@@ -109,12 +121,12 @@ useHead({
           :href="legal.url"
           target="_blank"
           rel="noopener"
-          class="underline-offset-2 transition hover:text-tinta hover:underline"
+          class="underline-offset-2 transition hover:text-foreground hover:underline"
         >
           {{ legal.texto }}
         </a>
       </div>
-      <p v-if="delegacion" class="text-xs text-tinta-suave">
+      <p v-if="delegacion" class="text-xs text-muted-foreground">
         Estás pidiendo como <strong class="font-medium">{{ delegacion.nombre }}</strong
         >.
       </p>

@@ -13,10 +13,10 @@ function alternar(id: string) {
 }
 
 const TONOS = {
-  espera: 'bg-lienzo text-tinta-suave ring-borde',
-  curso: 'bg-acento/10 text-acento-alto ring-acento/30',
-  hecho: 'bg-acento/15 text-acento-alto ring-acento/40',
-  malo: 'bg-aviso/10 text-aviso ring-aviso/30',
+  espera: 'bg-background text-muted-foreground ring-border',
+  curso: 'bg-primary/10 text-primary-hover ring-primary/30',
+  hecho: 'bg-primary/15 text-primary-hover ring-primary/40',
+  malo: 'bg-warn/10 text-warn ring-warn/30',
 } as const
 
 function fechaLarga(iso: string | null): string {
@@ -38,16 +38,16 @@ useSeoMeta({ title: 'Mis pedidos' })
     <!-- Sin sesión -->
     <div
       v-if="!sesion?.autenticado"
-      class="mt-6 rounded-tarjeta border border-borde bg-lienzo-alto p-8 text-center"
+      class="mt-6 rounded-xl border border-border bg-card p-8 text-center"
     >
       <p class="font-medium">Entra para ver tu histórico</p>
-      <p class="mx-auto mt-1 max-w-sm text-sm text-tinta-suave">
+      <p class="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
         Buscamos tus pedidos por el correo con el que entres. No hace falta ninguna contraseña
         nueva.
       </p>
       <a
         href="/auth/google?destino=/mis-pedidos"
-        class="mt-5 inline-block rounded-lg bg-acento px-4 py-2.5 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto"
+        class="mt-5 inline-block rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
       >
         Entrar con Google
       </a>
@@ -57,13 +57,13 @@ useSeoMeta({ title: 'Mis pedidos' })
       <div
         v-for="n in 3"
         :key="n"
-        class="h-24 animate-pulse rounded-tarjeta border border-borde bg-lienzo-alto"
+        class="h-24 animate-pulse rounded-xl border border-border bg-card"
       />
     </div>
 
     <div
       v-else-if="error"
-      class="mt-6 rounded-tarjeta border border-borde bg-lienzo-alto p-8 text-center text-sm text-tinta-suave"
+      class="mt-6 rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground"
     >
       No hemos podido consultar tus pedidos ahora mismo. Prueba en un momento.
     </div>
@@ -71,10 +71,10 @@ useSeoMeta({ title: 'Mis pedidos' })
     <!-- Sin histórico -->
     <div
       v-else-if="!data?.pedidos.length"
-      class="mt-6 rounded-tarjeta border border-borde bg-lienzo-alto p-8 text-center"
+      class="mt-6 rounded-xl border border-border bg-card p-8 text-center"
     >
       <p class="font-medium">Todavía no hay pedidos con este correo</p>
-      <p class="mt-1 text-sm text-tinta-suave">
+      <p class="mt-1 text-sm text-muted-foreground">
         {{
           data?.sinContacto
             ? 'Cuando hagas el primero, aparecerá aquí.'
@@ -83,7 +83,7 @@ useSeoMeta({ title: 'Mis pedidos' })
       </p>
       <NuxtLink
         to="/"
-        class="mt-5 inline-block rounded-lg border border-borde px-4 py-2.5 text-sm font-medium transition hover:border-tinta-suave"
+        class="mt-5 inline-block rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition hover:border-muted-foreground"
       >
         Ir al catálogo
       </NuxtLink>
@@ -93,11 +93,11 @@ useSeoMeta({ title: 'Mis pedidos' })
       <li
         v-for="pedido in data.pedidos"
         :key="pedido.id"
-        class="overflow-hidden rounded-tarjeta border border-borde bg-lienzo-alto"
+        class="overflow-hidden rounded-xl border border-border bg-card"
       >
         <button
           type="button"
-          class="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-lienzo"
+          class="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-background"
           :aria-expanded="abierto === pedido.id"
           @click="alternar(pedido.id)"
         >
@@ -113,7 +113,7 @@ useSeoMeta({ title: 'Mis pedidos' })
                 {{ pedido.estado }}
               </span>
             </div>
-            <p class="mt-0.5 text-xs text-tinta-suave">
+            <p class="mt-0.5 text-xs text-muted-foreground">
               {{ fechaLarga(pedido.fecha) }}
               <template v-if="pedido.lineas.length">
                 · {{ pedido.lineas.length }}
@@ -126,7 +126,7 @@ useSeoMeta({ title: 'Mis pedidos' })
             {{ formatearEuros(pedido.totalCentimos) }}
           </span>
           <span
-            class="shrink-0 text-tinta-suave transition"
+            class="shrink-0 text-muted-foreground transition"
             :class="abierto === pedido.id ? 'rotate-180' : ''"
             aria-hidden="true"
           >
@@ -134,17 +134,17 @@ useSeoMeta({ title: 'Mis pedidos' })
           </span>
         </button>
 
-        <div v-if="abierto === pedido.id" class="border-t border-borde px-4 py-3">
-          <ul class="divide-y divide-borde">
+        <div v-if="abierto === pedido.id" class="border-t border-border px-4 py-3">
+          <ul class="divide-y divide-border">
             <li
               v-for="(linea, i) in pedido.lineas"
               :key="i"
               class="flex items-baseline gap-3 py-2 text-sm"
             >
-              <span class="w-8 shrink-0 text-tinta-suave tabular-nums">{{ linea.unidades }}×</span>
+              <span class="w-8 shrink-0 text-muted-foreground tabular-nums">{{ linea.unidades }}×</span>
               <span class="min-w-0 flex-1">
                 {{ linea.nombre }}
-                <span v-if="linea.variante" class="block text-xs text-tinta-suave">
+                <span v-if="linea.variante" class="block text-xs text-muted-foreground">
                   {{ linea.variante }}
                 </span>
               </span>
@@ -154,15 +154,15 @@ useSeoMeta({ title: 'Mis pedidos' })
             </li>
           </ul>
 
-          <div v-if="pedido.seguimiento" class="mt-3 rounded-lg bg-lienzo px-3 py-2 text-sm">
-            <span class="text-tinta-suave">Envío:</span>
+          <div v-if="pedido.seguimiento" class="mt-3 rounded-lg bg-background px-3 py-2 text-sm">
+            <span class="text-muted-foreground">Envío:</span>
             {{ pedido.seguimiento.transportista ?? 'agencia' }}
             <span v-if="pedido.seguimiento.numero" class="font-medium">
               · {{ pedido.seguimiento.numero }}
             </span>
           </div>
 
-          <p v-if="pedido.fechaEntrega" class="mt-2 text-xs text-tinta-suave">
+          <p v-if="pedido.fechaEntrega" class="mt-2 text-xs text-muted-foreground">
             Entrega prevista: {{ fechaLarga(pedido.fechaEntrega) }}
           </p>
 
@@ -171,7 +171,7 @@ useSeoMeta({ title: 'Mis pedidos' })
             :href="`/api/pedidos/${pedido.id}/pdf`"
             target="_blank"
             rel="noopener"
-            class="mt-3 inline-block text-sm text-acento underline underline-offset-2"
+            class="mt-3 inline-block text-sm text-primary underline underline-offset-2"
           >
             Ver el PDF del pedido
           </a>

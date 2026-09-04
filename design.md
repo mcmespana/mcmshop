@@ -472,12 +472,28 @@ lo que va a pasar dicho antes de que pase.
 ## 8. Deuda de diseño conocida
 
 Los planes ejecutables viven en **`design-plans/`**, numerados y autocontenidos, con su tabla
-de estado en `design-plans/README.md`. Un agente que venga a "arreglar diseño" empieza ahí.
+de estado en `design-plans/README.md`.
 
-| Plan | Qué |
-|---|---|
-| `001` | **`--font-sans` declara `'Inter var'` y la fuente nunca se carga**: hoy se ve la del sistema. O se autoaloja la tipografía del sistema MCM (§3.2), o se quita la declaración y se asume `system-ui` a conciencia |
-| `002` | **Tokens al vocabulario común** (§3.1): `background`/`foreground`/`primary`/`border`… manteniendo los nombres en español como alias durante una versión. Es lo que permite mover un componente entre repos sin traducirlo |
-| `003` | **Conmutador de tema** (claro / oscuro / sistema), como las otras tres. Hoy no hay forma de forzarlo |
-| `004` | **`theme-color` dice `#13684b` y el comentario lo llama "el marino de la marca"**, cuando es el verde de la Tienda. Corregir el comentario y comprobar que el color coincide con `--color-acento` en los dos modos |
-| `005` | **Escala de radios**: conviven `rounded-lg`, `rounded-tarjeta` (0.875 rem), `rounded-md` y `rounded-t`. Reducir a la escala compartida (§3.3) |
+**Los cinco están hechos** (2026-09-03):
+
+- **`001`** — `--font-sans` declaraba `'Inter var'` y **Inter no se cargaba en ningún sitio**:
+  lo que se veía era la del sistema. Ahora Figtree, autoalojada con Fontsource. Bricolage,
+  la display del sistema, **no entra**: solo vale a partir de 24 px y esta tienda no tiene un
+  solo titular por encima de `text-2xl`. Serían 40 KB para tres líneas en el camino a la caja.
+- **`002`** — los tokens pasan a los nombres del sistema y el inglés es ahora el canónico;
+  los de siempre (`lienzo`, `tinta`, `acento`…) se quedan como **alias** una versión. 407
+  clases renombradas en 27 plantillas, sin un solo cambio visual.
+- **`003`** — conmutador de tema con tres estados. Va en **cookie y no en `localStorage`** a
+  propósito: el servidor necesita saber el tema para poner `data-tema` en el HTML que envía,
+  y así la página llega pintada. Decidirlo en el cliente es el parpadeo blanco de recargar de
+  noche. Comprobadas las cuatro combinaciones de tema × modo.
+- **`004`** — el `theme-color` decía en su comentario «el marino de la marca» y es el verde de
+  la Tienda; medido, `#13684b` es exactamente `--color-primary` en claro. Ahora hay uno por
+  tema, y el de oscuro es el fondo, no la marca.
+- **`005`** — escala de radios del sistema. `--radius-tarjeta` valía 0,875 rem, que resultó
+  ser exactamente el `xl` de esa escala, así que se queda como alias.
+
+**Lo que queda:** nada abierto. Cuando aparezca deuda nueva, un plan numerado aquí.
+
+Y una cosa que sigue siendo verdad y conviene no deshacer: **esta app es la más limpia de las
+cuatro**, y su sobriedad es una decisión, no un descuido. Antes de añadirle nada, léete la §7.

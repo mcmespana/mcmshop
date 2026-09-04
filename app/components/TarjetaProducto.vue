@@ -45,7 +45,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 
 <template>
   <article
-    class="group mcm-animar-entrada flex flex-col overflow-hidden rounded-tarjeta border border-borde bg-lienzo-alto transition hover:-translate-y-0.5 hover:border-tinta-suave/40 hover:shadow-lg hover:shadow-tinta/5"
+    class="group mcm-animar-entrada flex flex-col overflow-hidden rounded-xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-lg hover:shadow-foreground/5"
     :style="{ animationDelay: retrasoEntrada }"
   >
     <div class="relative">
@@ -56,8 +56,8 @@ onBeforeUnmount(() => clearTimeout(temporizador))
         class="absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-medium backdrop-blur"
         :class="
           aviso.tono === 'agotado'
-            ? 'bg-aviso/15 text-aviso ring-1 ring-aviso/30'
-            : 'bg-lienzo-alto/85 text-tinta-suave ring-1 ring-borde'
+            ? 'bg-warn/15 text-warn ring-1 ring-warn/30'
+            : 'bg-card/85 text-muted-foreground ring-1 ring-border'
         "
       >
         {{ aviso.texto }}
@@ -67,14 +67,14 @@ onBeforeUnmount(() => clearTimeout(temporizador))
     <div class="flex flex-1 flex-col gap-3 p-3.5">
       <div>
         <h3 class="leading-tight font-medium">{{ producto.nombre }}</h3>
-        <p v-if="producto.descripcion" class="mt-0.5 line-clamp-2 text-xs text-tinta-suave">
+        <p v-if="producto.descripcion" class="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
           {{ producto.descripcion }}
         </p>
       </div>
 
       <SelectorVariante v-model="variante" :producto="producto" />
 
-      <p v-if="stock < 0" class="text-xs leading-snug text-aviso">
+      <p v-if="stock < 0" class="text-xs leading-snug text-warn">
         {{ AVISO_SIN_STOCK }}
       </p>
 
@@ -82,10 +82,10 @@ onBeforeUnmount(() => clearTimeout(temporizador))
         <span class="text-lg font-semibold tabular-nums">{{ formatearEuros(precio) }}</span>
 
         <div class="flex items-center gap-1.5">
-          <div class="flex items-center rounded-lg border border-borde">
+          <div class="flex items-center rounded-lg border border-border">
             <button
               type="button"
-              class="px-2.5 py-1.5 text-tinta-suave transition hover:text-tinta disabled:opacity-40"
+              class="px-2.5 py-1.5 text-muted-foreground transition hover:text-foreground disabled:opacity-40"
               :disabled="cantidad <= 1"
               aria-label="Quitar una unidad"
               @click="bajar"
@@ -95,7 +95,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
             <span class="w-7 text-center text-sm font-medium tabular-nums">{{ cantidad }}</span>
             <button
               type="button"
-              class="px-2.5 py-1.5 text-tinta-suave transition hover:text-tinta"
+              class="px-2.5 py-1.5 text-muted-foreground transition hover:text-foreground"
               aria-label="Añadir una unidad"
               @click="subir"
             >
@@ -105,7 +105,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-lg bg-acento px-3 py-2 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto active:scale-95"
+            class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover active:scale-95"
             @click="alAnadir"
           >
             <Transition

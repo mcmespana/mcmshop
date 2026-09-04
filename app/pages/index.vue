@@ -107,7 +107,7 @@ useSeoMeta({
           pequeño, así que el sitio para "personalidad" está aquí arriba, no en
           una tarjeta más.
         -->
-        <div v-if="status !== 'pending' && productos.length > 0" class="mb-4 flex items-center gap-2 text-sm text-tinta-suave">
+        <div v-if="status !== 'pending' && productos.length > 0" class="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <span class="mcm-rebote text-lg" aria-hidden="true">👋</span>
           <span>
             {{ (data?.productos.length ?? 0) }}
@@ -123,10 +123,10 @@ useSeoMeta({
               type="search"
               placeholder="Buscar en el catálogo"
               aria-label="Buscar en el catálogo"
-              class="w-full rounded-lg border border-borde bg-lienzo-alto py-2 pr-14 pl-3.5 text-sm outline-none placeholder:text-tinta-suave focus:border-acento"
+              class="w-full rounded-lg border border-border bg-card py-2 pr-14 pl-3.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
             />
             <kbd
-              class="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-borde px-1.5 py-0.5 text-[10px] text-tinta-suave sm:block"
+              class="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:block"
             >
               ⌘K
             </kbd>
@@ -143,14 +143,14 @@ useSeoMeta({
             class="group flex items-center gap-2 rounded-full border py-1 pr-3.5 pl-1.5 text-sm transition"
             :class="
               categoria === c.id
-                ? 'border-acento bg-acento/10 font-medium text-acento-alto'
-                : 'border-borde text-tinta-suave hover:border-tinta-suave hover:text-tinta'
+                ? 'border-primary bg-primary/10 font-medium text-primary-hover'
+                : 'border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground'
             "
             @click="alternarCategoria(c.id)"
           >
             <component :is="c.icono" :activo="categoria === c.id" class="size-6" />
             {{ c.etiqueta }}
-            <span class="text-xs text-tinta-suave">{{ c.total }}</span>
+            <span class="text-xs text-muted-foreground">{{ c.total }}</span>
           </button>
         </div>
 
@@ -158,19 +158,19 @@ useSeoMeta({
           <div
             v-for="n in 6"
             :key="n"
-            class="aspect-[3/4] animate-pulse rounded-tarjeta border border-borde bg-lienzo-alto"
+            class="aspect-[3/4] animate-pulse rounded-xl border border-border bg-card"
           />
         </div>
 
         <div
           v-else-if="productos.length === 0"
-          class="rounded-tarjeta border border-borde bg-lienzo-alto px-4 py-12 text-center"
+          class="rounded-xl border border-border bg-card px-4 py-12 text-center"
         >
           <IconoOtros class="mcm-rebote mx-auto mb-3 size-10 opacity-70" />
           <p class="font-medium">
             {{ busqueda ? 'No hay nada con ese nombre' : 'Todavía no hay nada por aquí' }}
           </p>
-          <p class="mx-auto mt-1 max-w-md text-sm text-tinta-suave">
+          <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
             <template v-if="busqueda">Prueba con otra palabra.</template>
             <!-- Aviso de configuración: al equipo, no al cliente. Que quede claro
                  que la tienda funciona y lo que falta es etiquetar en Holded. -->

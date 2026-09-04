@@ -11,8 +11,8 @@ defineProps<{ activo?: boolean }>()
     aria-hidden="true"
     class="transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110"
   >
-    <rect width="40" height="40" rx="10" :class="activo ? 'fill-acento' : 'fill-acento/10'" />
-    <path d="M8 10 H32 L20 30 Z" :class="activo ? 'fill-sobre-acento' : 'fill-acento'" />
-    <circle cx="20" cy="10" r="2.4" :class="activo ? 'fill-acento' : 'fill-lienzo-alto'" />
+    <rect width="40" height="40" rx="10" :class="activo ? 'fill-primary' : 'fill-primary/10'" />
+    <path d="M8 10 H32 L20 30 Z" :class="activo ? 'fill-primary-foreground' : 'fill-primary'" />
+    <circle cx="20" cy="10" r="2.4" :class="activo ? 'fill-primary' : 'fill-card'" />
   </svg>
 </template>

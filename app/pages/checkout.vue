@@ -188,7 +188,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
     <TicketImpresora v-if="pedidoHecho">
       <IconoExito class="mx-auto" />
       <h1 class="mt-2 text-2xl font-semibold">¡Pedido recibido!</h1>
-      <p class="mx-auto mt-2 max-w-md text-sm text-tinta-suave">
+      <p class="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         Gracias{{ formulario.nombre ? `, ${formulario.nombre.split(' ')[0]}` : '' }}. Te hemos
         mandado un correo con todo el detalle
         <template v-if="formulario.transporte === 'mensajeria'">
@@ -210,22 +210,22 @@ useSeoMeta({ title: 'Finalizar pedido' })
       <div class="mt-6 flex flex-wrap justify-center gap-2">
         <NuxtLink
           to="/mis-pedidos"
-          class="rounded-lg bg-acento px-4 py-2.5 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto"
+          class="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
         >
           Ver mis pedidos
         </NuxtLink>
         <NuxtLink
           to="/"
-          class="rounded-lg border border-borde px-4 py-2.5 text-sm font-medium transition hover:border-tinta-suave"
+          class="rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition hover:border-muted-foreground"
         >
           Volver al catálogo
         </NuxtLink>
       </div>
     </TicketImpresora>
 
-    <div v-else-if="vacio" class="rounded-tarjeta border border-borde bg-lienzo-alto p-8 text-center">
+    <div v-else-if="vacio" class="rounded-xl border border-border bg-card p-8 text-center">
       <p class="font-medium">Tu carrito está vacío</p>
-      <NuxtLink to="/" class="mt-3 inline-block text-sm text-acento underline underline-offset-2">
+      <NuxtLink to="/" class="mt-3 inline-block text-sm text-primary underline underline-offset-2">
         Ir al catálogo
       </NuxtLink>
     </div>
@@ -233,7 +233,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
     <form v-else class="space-y-6" @submit.prevent="enviar">
       <div>
         <h1 class="text-xl font-semibold">Finalizar pedido</h1>
-        <p class="mt-1 text-sm text-tinta-suave">
+        <p class="mt-1 text-sm text-muted-foreground">
           {{ unidades }} {{ unidades === 1 ? 'unidad' : 'unidades' }} ·
           {{ formatearEuros(totalCentimos) }}
         </p>
@@ -242,35 +242,35 @@ useSeoMeta({ title: 'Finalizar pedido' })
       <!-- Login opcional: se invita, no se obliga -->
       <div
         v-if="!sesion?.autenticado"
-        class="flex flex-wrap items-center gap-3 rounded-tarjeta border border-borde bg-lienzo-alto px-4 py-3"
+        class="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
       >
-        <p class="flex-1 text-sm text-tinta-suave">
+        <p class="flex-1 text-sm text-muted-foreground">
           Si entras con Google te rellenamos los datos y podrás ver tus pedidos anteriores.
         </p>
         <a
           href="/auth/google?destino=/checkout"
-          class="rounded-lg border border-borde px-3 py-1.5 text-sm font-medium transition hover:border-tinta-suave"
+          class="rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition hover:border-muted-foreground"
         >
           Entrar con Google
         </a>
       </div>
 
-      <section class="space-y-3 rounded-tarjeta border border-borde bg-lienzo-alto p-4">
+      <section class="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 class="font-medium">Tus datos</h2>
 
         <div class="grid gap-3 sm:grid-cols-2">
           <label class="block">
-            <span class="mb-1 block text-xs text-tinta-suave">Correo electrónico</span>
+            <span class="mb-1 block text-xs text-muted-foreground">Correo electrónico</span>
             <input
               v-model="formulario.email"
               type="email"
               required
-              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs text-tinta-suave">
+            <span class="mb-1 block text-xs text-muted-foreground">
               {{ modo === 'b2b' ? 'Nombre de tu MCM Local' : 'Nombre y apellidos' }}
             </span>
             <input
@@ -278,12 +278,12 @@ useSeoMeta({ title: 'Finalizar pedido' })
               type="text"
               required
               minlength="2"
-              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </label>
 
           <label v-if="modo === 'b2b'" class="block">
-            <span class="mb-1 block text-xs text-tinta-suave">
+            <span class="mb-1 block text-xs text-muted-foreground">
               ¿Con quién hablamos de este pedido?
             </span>
             <input
@@ -291,71 +291,71 @@ useSeoMeta({ title: 'Finalizar pedido' })
               type="text"
               required
               placeholder="Nombre de la persona"
-              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs text-tinta-suave">Teléfono</span>
+            <span class="mb-1 block text-xs text-muted-foreground">Teléfono</span>
             <input
               v-model="formulario.telefono"
               type="tel"
-              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </label>
 
           <label v-if="hayDireccionMcmLocal" class="flex items-center gap-2 sm:col-span-2">
             <input v-model="usarDireccionMcmLocal" type="checkbox" />
-            <span class="text-sm text-tinta-suave">A la dirección de mi MCM Local</span>
+            <span class="text-sm text-muted-foreground">A la dirección de mi MCM Local</span>
           </label>
 
           <label class="block sm:col-span-2">
-            <span class="mb-1 block text-xs text-tinta-suave">Dirección de envío</span>
+            <span class="mb-1 block text-xs text-muted-foreground">Dirección de envío</span>
             <input
               v-model="formulario.direccion"
               type="text"
               :disabled="usarDireccionMcmLocal && hayDireccionMcmLocal"
-              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento disabled:opacity-60"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
             />
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs text-tinta-suave">Población</span>
+            <span class="mb-1 block text-xs text-muted-foreground">Población</span>
             <input
               v-model="formulario.poblacion"
               type="text"
               :disabled="usarDireccionMcmLocal && hayDireccionMcmLocal"
-              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento disabled:opacity-60"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
             />
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs text-tinta-suave">Código postal</span>
+            <span class="mb-1 block text-xs text-muted-foreground">Código postal</span>
             <input
               v-model="formulario.codigoPostal"
               type="text"
               inputmode="numeric"
               :disabled="usarDireccionMcmLocal && hayDireccionMcmLocal"
-              class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento disabled:opacity-60"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
             />
           </label>
         </div>
       </section>
 
-      <section class="space-y-3 rounded-tarjeta border border-borde bg-lienzo-alto p-4">
+      <section class="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 class="font-medium">Cómo te lo hacemos llegar</h2>
 
         <div
           class="rounded-lg border p-3 transition"
           :class="
-            formulario.transporte === 'consolacion' ? 'border-acento bg-acento/5' : 'border-borde'
+            formulario.transporte === 'consolacion' ? 'border-primary bg-primary/5' : 'border-border'
           "
         >
           <label class="flex cursor-pointer gap-3">
             <input v-model="formulario.transporte" type="radio" value="consolacion" class="mt-1" />
             <span>
               <span class="block text-sm font-medium">Transporte Consolación · gratis</span>
-              <span class="block text-xs text-tinta-suave">
+              <span class="block text-xs text-muted-foreground">
                 Te llegará cuando alguien de la Familia Consolación vaya para allá.
               </span>
             </span>
@@ -366,16 +366,16 @@ useSeoMeta({ title: 'Finalizar pedido' })
             control, y aquí abajo hay otros dos (la fecha y su checkbox).
           -->
           <div v-if="formulario.transporte === 'consolacion'" class="mt-3 pl-7">
-            <p class="mb-1 text-xs text-tinta-suave">¿Para qué fecha lo necesitas como muy tarde?</p>
+            <p class="mb-1 text-xs text-muted-foreground">¿Para qué fecha lo necesitas como muy tarde?</p>
             <div class="flex flex-wrap items-center gap-2">
               <input
                 v-model="formulario.fechaLimite"
                 type="date"
                 :min="hoy"
                 :disabled="sinFechaConcreta"
-                class="rounded-lg border border-borde bg-lienzo px-3 py-1.5 text-sm outline-none focus:border-acento disabled:opacity-50"
+                class="rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-50"
               />
-              <label class="flex items-center gap-1.5 text-xs text-tinta-suave">
+              <label class="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <input v-model="sinFechaConcreta" type="checkbox" />
                 No tengo una fecha concreta
               </label>
@@ -390,13 +390,13 @@ useSeoMeta({ title: 'Finalizar pedido' })
         <label
           class="flex cursor-pointer gap-3 rounded-lg border p-3 transition"
           :class="
-            formulario.transporte === 'mensajeria' ? 'border-acento bg-acento/5' : 'border-borde'
+            formulario.transporte === 'mensajeria' ? 'border-primary bg-primary/5' : 'border-border'
           "
         >
           <input v-model="formulario.transporte" type="radio" value="mensajeria" class="mt-1" />
           <span>
             <span class="block text-sm font-medium">Mensajería urgente</span>
-            <span class="block text-xs text-tinta-suave">
+            <span class="block text-xs text-muted-foreground">
               Te lo enviamos por agencia. El coste depende del destino y del peso; te lo
               confirmamos por correo antes de enviar nada.
             </span>
@@ -404,20 +404,20 @@ useSeoMeta({ title: 'Finalizar pedido' })
         </label>
       </section>
 
-      <section class="space-y-3 rounded-tarjeta border border-borde bg-lienzo-alto p-4">
+      <section class="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 class="font-medium">Pago</h2>
 
         <!-- B2C: los tres métodos a la vista, tarjeta un poco destacada -->
         <div v-if="modo === 'b2c'" class="space-y-2.5">
           <label
             class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
-            :class="formaDePago === 'bizum' ? 'border-acento bg-acento/5' : 'border-borde'"
+            :class="formaDePago === 'bizum' ? 'border-primary bg-primary/5' : 'border-border'"
           >
             <input v-model="formaDePago" type="radio" value="bizum" />
             <IconoBizum class="size-9 shrink-0" />
             <span>
               <span class="block text-sm font-medium">Bizum ONG</span>
-              <span class="block text-xs text-tinta-suave">
+              <span class="block text-xs text-muted-foreground">
                 Te damos el código en cuanto confirmes.
               </span>
             </span>
@@ -425,13 +425,13 @@ useSeoMeta({ title: 'Finalizar pedido' })
 
           <label
             class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
-            :class="formaDePago === 'transferencia' ? 'border-acento bg-acento/5' : 'border-borde'"
+            :class="formaDePago === 'transferencia' ? 'border-primary bg-primary/5' : 'border-border'"
           >
             <input v-model="formaDePago" type="radio" value="transferencia" />
             <IconoTransferencia class="size-9 shrink-0" />
             <span>
               <span class="block text-sm font-medium">Transferencia bancaria</span>
-              <span class="block text-xs text-tinta-suave">
+              <span class="block text-xs text-muted-foreground">
                 Te damos el IBAN en cuanto confirmes.
               </span>
             </span>
@@ -441,12 +441,12 @@ useSeoMeta({ title: 'Finalizar pedido' })
             class="relative flex cursor-pointer items-center gap-3 rounded-lg border-2 p-3 transition"
             :class="
               formaDePago === 'tarjeta'
-                ? 'border-acento bg-acento/5'
-                : 'border-acento/30 hover:border-acento/60'
+                ? 'border-primary bg-primary/5'
+                : 'border-primary/30 hover:border-primary/60'
             "
           >
             <span
-              class="absolute -top-2.5 right-3 rounded-full bg-acento px-2 py-0.5 text-[10px] font-semibold text-sobre-acento"
+              class="absolute -top-2.5 right-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground"
             >
               Al instante
             </span>
@@ -454,7 +454,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
             <IconoTarjeta class="size-9 shrink-0" />
             <span>
               <span class="block text-sm font-medium">Tarjeta, ahora mismo</span>
-              <span class="block text-xs text-tinta-suave">
+              <span class="block text-xs text-muted-foreground">
                 Pago seguro con Redsys. El pedido se confirma en cuanto el banco lo autoriza.
               </span>
             </span>
@@ -465,13 +465,13 @@ useSeoMeta({ title: 'Finalizar pedido' })
         <div v-else class="space-y-2.5">
           <label
             class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
-            :class="formaDePago === 'transferencia' ? 'border-acento bg-acento/5' : 'border-borde'"
+            :class="formaDePago === 'transferencia' ? 'border-primary bg-primary/5' : 'border-border'"
           >
             <input v-model="formaDePago" type="radio" value="transferencia" />
             <IconoTransferencia class="size-9 shrink-0" />
             <span>
               <span class="block text-sm font-medium">Transferencia bancaria</span>
-              <span class="block text-xs text-tinta-suave">
+              <span class="block text-xs text-muted-foreground">
                 Te damos el IBAN en cuanto confirmes.
               </span>
             </span>
@@ -479,14 +479,14 @@ useSeoMeta({ title: 'Finalizar pedido' })
 
           <p
             v-if="formaDePago === 'transferencia'"
-            class="rounded-lg bg-lienzo px-3 py-2 text-xs text-tinta-suave"
+            class="rounded-lg bg-background px-3 py-2 text-xs text-muted-foreground"
           >
             Recuerda que el pago debe efectuarse desde las cuentas del MCM, si están disponibles.
           </p>
 
           <button
             type="button"
-            class="text-sm text-tinta-suave underline-offset-2 hover:text-tinta hover:underline"
+            class="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             @click="otrosMetodosAbierto = !otrosMetodosAbierto"
           >
             {{ otrosMetodosAbierto ? 'Ocultar' : 'Otros métodos de pago' }}
@@ -495,13 +495,13 @@ useSeoMeta({ title: 'Finalizar pedido' })
           <div v-if="otrosMetodosAbierto" class="mcm-animar-entrada space-y-2.5">
             <label
               class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
-              :class="formaDePago === 'bizum' ? 'border-acento bg-acento/5' : 'border-borde'"
+              :class="formaDePago === 'bizum' ? 'border-primary bg-primary/5' : 'border-border'"
             >
               <input v-model="formaDePago" type="radio" value="bizum" />
               <IconoBizum class="size-9 shrink-0" />
               <span>
                 <span class="block text-sm font-medium">Bizum ONG</span>
-                <span class="block text-xs text-tinta-suave">
+                <span class="block text-xs text-muted-foreground">
                   Te damos el código en cuanto confirmes.
                 </span>
               </span>
@@ -509,13 +509,13 @@ useSeoMeta({ title: 'Finalizar pedido' })
 
             <label
               class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
-              :class="formaDePago === 'tarjeta' ? 'border-acento bg-acento/5' : 'border-borde'"
+              :class="formaDePago === 'tarjeta' ? 'border-primary bg-primary/5' : 'border-border'"
             >
               <input v-model="formaDePago" type="radio" value="tarjeta" />
               <IconoTarjeta class="size-9 shrink-0" />
               <span>
                 <span class="block text-sm font-medium">Tarjeta, ahora mismo</span>
-                <span class="block text-xs text-tinta-suave">
+                <span class="block text-xs text-muted-foreground">
                   Pago seguro con Redsys. El pedido se confirma en cuanto el banco lo autoriza.
                 </span>
               </span>
@@ -524,38 +524,38 @@ useSeoMeta({ title: 'Finalizar pedido' })
         </div>
 
         <label class="block pt-1">
-          <span class="mb-1 block text-xs text-tinta-suave">¿Nos quieres decir algo más?</span>
+          <span class="mb-1 block text-xs text-muted-foreground">¿Nos quieres decir algo más?</span>
           <textarea
             v-model="formulario.notas"
             rows="2"
-            class="w-full rounded-lg border border-borde bg-lienzo px-3 py-2 text-sm outline-none focus:border-acento"
+            class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
         </label>
       </section>
 
       <label class="flex cursor-pointer items-start gap-2.5 px-1 text-sm">
         <input v-model="formulario.proteccionDatos" type="checkbox" class="mt-0.5 shrink-0" />
-        <span class="text-tinta-suave">
+        <span class="text-muted-foreground">
           He leído la
           <a
             href="https://comunica.movimientoconsolacion.com/politicadeprivacidad/"
             target="_blank"
             rel="noopener"
-            class="text-acento underline underline-offset-2"
+            class="text-primary underline underline-offset-2"
           >
             política de privacidad </a
           >. Usamos tus datos para preparar y enviarte este pedido.
         </span>
       </label>
 
-      <p v-if="error" class="rounded-lg bg-aviso/10 px-3.5 py-2.5 text-sm text-aviso">
+      <p v-if="error" class="rounded-lg bg-warn/10 px-3.5 py-2.5 text-sm text-warn">
         {{ error }}
       </p>
 
       <button
         type="submit"
         :disabled="enviando || !formulario.proteccionDatos"
-        class="w-full rounded-lg bg-acento py-3 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto disabled:opacity-60"
+        class="w-full rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:opacity-60"
       >
         <template v-if="enviando">
           {{ formaDePago === 'tarjeta' ? 'Te llevamos al banco…' : 'Enviando…' }}
