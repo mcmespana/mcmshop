@@ -96,8 +96,8 @@ function rotuloColor(c: GrupoColor): string {
     <!-- Colores -->
     <div v-if="producto.eje === 'mixto'">
       <div class="mb-1.5 flex items-baseline justify-between gap-2">
-        <p class="text-xs font-medium text-tinta-suave">Color</p>
-        <p class="truncate text-xs text-tinta">{{ colorElegido }}</p>
+        <p class="text-xs font-medium text-muted-foreground">Color</p>
+        <p class="truncate text-xs text-foreground">{{ colorElegido }}</p>
       </div>
 
       <!-- Muchos colores: muestras redondas, el nombre se lee arriba -->
@@ -109,11 +109,11 @@ function rotuloColor(c: GrupoColor): string {
           :aria-label="rotuloColor(color)"
           :aria-pressed="colorElegido === color.nombre"
           :title="rotuloColor(color)"
-          class="relative size-7 rounded-full transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+          class="relative size-7 rounded-full transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           :class="
             colorElegido === color.nombre
-              ? 'ring-2 ring-acento ring-offset-2 ring-offset-lienzo-alto'
-              : 'ring-1 ring-black/10 hover:ring-tinta-suave'
+              ? 'ring-2 ring-primary ring-offset-2 ring-offset-lienzo-alto'
+              : 'ring-1 ring-black/10 hover:ring-muted-foreground'
           "
           :style="{ backgroundColor: color.muestra! }"
           @click="colorElegido = color.nombre"
@@ -141,8 +141,8 @@ function rotuloColor(c: GrupoColor): string {
           class="rounded-full border px-2.5 py-1 text-xs transition"
           :class="[
             colorElegido === color.nombre
-              ? 'border-acento bg-acento/10 font-medium text-acento-alto'
-              : 'border-borde text-tinta-suave hover:border-tinta-suave',
+              ? 'border-primary bg-primary/10 font-medium text-primary-hover'
+              : 'border-border text-muted-foreground hover:border-muted-foreground',
             color.stock <= 0 ? 'line-through decoration-from-font' : '',
           ]"
           @click="colorElegido = color.nombre"
@@ -155,8 +155,8 @@ function rotuloColor(c: GrupoColor): string {
     <!-- Tallas u opciones -->
     <div>
       <div class="mb-1.5 flex items-baseline justify-between gap-2">
-        <p class="text-xs font-medium text-tinta-suave">{{ etiquetaFila }}</p>
-        <p v-if="seleccion && seleccion.stock > 0 && seleccion.stock <= 5" class="text-xs text-tinta-suave">
+        <p class="text-xs font-medium text-muted-foreground">{{ etiquetaFila }}</p>
+        <p v-if="seleccion && seleccion.stock > 0 && seleccion.stock <= 5" class="text-xs text-muted-foreground">
           quedan {{ seleccion.stock }}
         </p>
       </div>
@@ -171,9 +171,9 @@ function rotuloColor(c: GrupoColor): string {
           class="min-w-9 rounded-lg border px-2.5 py-1.5 text-sm transition"
           :class="[
             seleccion?.id === opcion.id
-              ? 'border-acento bg-acento/10 font-semibold text-acento-alto'
-              : 'border-borde hover:border-tinta-suave',
-            opcion.stock <= 0 ? 'text-tinta-suave line-through decoration-from-font' : '',
+              ? 'border-primary bg-primary/10 font-semibold text-primary-hover'
+              : 'border-border hover:border-muted-foreground',
+            opcion.stock <= 0 ? 'text-muted-foreground line-through decoration-from-font' : '',
           ]"
           @click="seleccion = opcion"
         >
@@ -182,6 +182,6 @@ function rotuloColor(c: GrupoColor): string {
       </div>
     </div>
 
-    <p v-if="seleccion?.nota" class="text-xs text-tinta-suave italic">{{ seleccion.nota }}</p>
+    <p v-if="seleccion?.nota" class="text-xs text-muted-foreground italic">{{ seleccion.nota }}</p>
   </div>
 </template>

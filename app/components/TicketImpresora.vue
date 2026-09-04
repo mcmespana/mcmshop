@@ -11,7 +11,7 @@ withDefaults(defineProps<{ imprimiendo?: boolean }>(), { imprimiendo: true })
 <template>
   <div class="mcm-animar-entrada mx-auto max-w-lg">
     <div class="mcm-impresora-cuerpo mx-auto flex h-7 w-48 items-center justify-center rounded-t-xl">
-      <span class="h-1.5 w-28 rounded-full bg-lienzo-alto/20"></span>
+      <span class="h-1.5 w-28 rounded-full bg-card/20"></span>
     </div>
     <div class="mcm-ticket-ventana">
       <div class="mcm-ticket-papel" :class="{ 'mcm-ticket-imprimir': imprimiendo }">

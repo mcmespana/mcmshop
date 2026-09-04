@@ -46,10 +46,10 @@ useSeoMeta({ title: 'Bienvenido' })
 </script>
 
 <template>
-  <div class="relative flex min-h-screen flex-col overflow-hidden bg-lienzo">
+  <div class="relative flex min-h-screen flex-col overflow-hidden bg-background">
     <!--
       Decoración de fondo: iconos muy tenues, sólo textura, nunca legibles como
-      contenido. Sin z negativo: el contenedor pinta `bg-lienzo`, así que un
+      contenido. Sin z negativo: el contenedor pinta `bg-background`, así que un
       `-z-10` los dejaría por detrás de ese fondo y no se verían.
     -->
     <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
@@ -63,7 +63,7 @@ useSeoMeta({ title: 'Bienvenido' })
         <LogoMCM animado class="size-14 shrink-0" />
         <div>
           <h1 class="text-2xl font-semibold">Tienda MCM</h1>
-          <p class="mt-0.5 text-sm text-tinta-suave">
+          <p class="mt-0.5 text-sm text-muted-foreground">
             Materiales del Movimiento Consolación para el Mundo.
           </p>
         </div>
@@ -77,14 +77,14 @@ useSeoMeta({ title: 'Bienvenido' })
 
         <button
           type="button"
-          class="mcm-animar-entrada group flex w-full items-center gap-3.5 rounded-tarjeta border border-borde bg-lienzo-alto p-4 text-left transition hover:border-acento hover:bg-acento/5"
+          class="mcm-animar-entrada group flex w-full items-center gap-3.5 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-primary/5"
           style="animation-delay: 110ms"
           @click="paso = 'delegaciones'"
         >
           <IconoGrupo class="size-11 shrink-0 transition-transform group-hover:scale-110" />
           <span>
             <span class="block font-medium">Materiales para MCM Locales</span>
-            <span class="mt-0.5 block text-sm text-tinta-suave">
+            <span class="mt-0.5 block text-sm text-muted-foreground">
               Pedido de grupo para tu MCM Local.
             </span>
           </span>
@@ -92,20 +92,20 @@ useSeoMeta({ title: 'Bienvenido' })
 
         <button
           type="button"
-          class="mcm-animar-entrada group flex w-full items-center gap-3.5 rounded-tarjeta border border-borde bg-lienzo-alto p-4 text-left transition hover:border-acento hover:bg-acento/5"
+          class="mcm-animar-entrada group flex w-full items-center gap-3.5 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-primary/5"
           style="animation-delay: 160ms"
           @click="entrarComoPersona"
         >
           <IconoPersona class="size-11 shrink-0 transition-transform group-hover:scale-110" />
           <span>
             <span class="block font-medium">Materiales para mí, a título personal</span>
-            <span class="mt-0.5 block text-sm text-tinta-suave">
+            <span class="mt-0.5 block text-sm text-muted-foreground">
               Camisetas, sudaderas y más, para monitores o miembros del MCM.
             </span>
           </span>
         </button>
 
-        <p class="mcm-animar-entrada pt-2 text-xs text-tinta-suave" style="animation-delay: 200ms">
+        <p class="mcm-animar-entrada pt-2 text-xs text-muted-foreground" style="animation-delay: 200ms">
           Puedes cambiarlo cuando quieras. Puedes mirar el catálogo sin hacer un pedido haciendo
           click en una de las opciones anteriores.
         </p>
@@ -117,7 +117,7 @@ useSeoMeta({ title: 'Bienvenido' })
           <p class="text-sm font-medium">¿De qué MCM Local?</p>
           <button
             type="button"
-            class="text-xs text-tinta-suave underline-offset-2 hover:underline"
+            class="text-xs text-muted-foreground underline-offset-2 hover:underline"
             @click="paso = 'inicio'"
           >
             Volver
@@ -130,7 +130,7 @@ useSeoMeta({ title: 'Bienvenido' })
           type="search"
           placeholder="Buscar tu localidad"
           aria-label="Buscar tu localidad"
-          class="w-full rounded-lg border border-borde bg-lienzo-alto px-3.5 py-2.5 text-sm outline-none placeholder:text-tinta-suave focus:border-acento"
+          class="w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
         />
 
         <ul v-if="lista.length" class="grid gap-2 sm:grid-cols-2">
@@ -139,24 +139,24 @@ useSeoMeta({ title: 'Bienvenido' })
               type="button"
               :disabled="cargandoDetalle !== null"
               class="flex w-full items-center justify-between gap-2 rounded-lg border p-3 text-left text-sm font-medium transition disabled:opacity-60"
-              :class="delegacion?.id === d.id ? 'border-acento bg-acento/5' : 'border-borde hover:border-acento hover:bg-acento/5'"
+              :class="delegacion?.id === d.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary hover:bg-primary/5'"
               @click="entrarComoDelegacion(d)"
             >
               {{ d.nombre }}
               <span
                 v-if="cargandoDetalle === d.id"
-                class="size-3.5 shrink-0 animate-spin rounded-full border-2 border-tinta-suave border-t-transparent"
+                class="size-3.5 shrink-0 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent"
                 aria-hidden="true"
               />
             </button>
           </li>
         </ul>
 
-        <p v-else class="rounded-lg border border-borde bg-lienzo-alto p-4 text-sm text-tinta-suave">
+        <p v-else class="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           No encontramos ninguna MCM Local con ese nombre. Si la tuya no está,
           <button
             type="button"
-            class="text-acento underline underline-offset-2"
+            class="text-primary underline underline-offset-2"
             @click="entrarComoPersona"
           >
             entra a título personal
@@ -168,7 +168,7 @@ useSeoMeta({ title: 'Bienvenido' })
 
     <footer class="relative mx-auto w-full max-w-lg space-y-2 px-5 pb-8">
       <LogoInstitucional :ancho="140" />
-      <p class="text-xs text-tinta-suave">Movimiento Consolación para el Mundo</p>
+      <p class="text-xs text-muted-foreground">Movimiento Consolación para el Mundo</p>
     </footer>
   </div>
 </template>

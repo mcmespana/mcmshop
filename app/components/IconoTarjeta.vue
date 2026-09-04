@@ -12,10 +12,10 @@
     aria-hidden="true"
     class="group overflow-hidden"
   >
-    <rect width="40" height="40" rx="10" class="fill-acento/10" />
-    <rect x="6" y="11" width="28" height="18" rx="3" class="fill-acento" />
-    <rect x="6" y="15.5" width="28" height="3.4" class="fill-lienzo-alto" />
-    <rect x="9.5" y="22" width="6.5" height="3.6" rx="1" class="fill-lienzo-alto/70" />
+    <rect width="40" height="40" rx="10" class="fill-primary/10" />
+    <rect x="6" y="11" width="28" height="18" rx="3" class="fill-primary" />
+    <rect x="6" y="15.5" width="28" height="3.4" class="fill-card" />
+    <rect x="9.5" y="22" width="6.5" height="3.6" rx="1" class="fill-card/70" />
     <!-- destello diagonal que cruza la tarjeta al pasar el ratón -->
     <rect
       x="-14"

@@ -11,22 +11,22 @@ defineProps<{ activo?: boolean }>()
     aria-hidden="true"
     class="transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"
   >
-    <rect width="40" height="40" rx="10" :class="activo ? 'fill-acento' : 'fill-acento/10'" />
+    <rect width="40" height="40" rx="10" :class="activo ? 'fill-primary' : 'fill-primary/10'" />
     <path
       d="M13.5 8.5 L20 11.5 L26.5 8.5 L34 13 L30.5 18.5 L27 16.3 V31.5 H13 V16.3 L9.5 18.5 L6 13 Z"
-      :class="activo ? 'fill-sobre-acento' : 'fill-acento'"
+      :class="activo ? 'fill-primary-foreground' : 'fill-primary'"
     />
     <path
       d="M17 15.5 V19.5"
       stroke-width="2"
       stroke-linecap="round"
-      :class="activo ? 'stroke-acento' : 'stroke-lienzo-alto'"
+      :class="activo ? 'stroke-primary' : 'stroke-card'"
     />
     <path
       d="M23 15.5 V19.5"
       stroke-width="2"
       stroke-linecap="round"
-      :class="activo ? 'stroke-acento' : 'stroke-lienzo-alto'"
+      :class="activo ? 'stroke-primary' : 'stroke-card'"
     />
   </svg>
 </template>

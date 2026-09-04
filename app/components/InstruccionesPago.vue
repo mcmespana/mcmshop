@@ -24,28 +24,28 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 </script>
 
 <template>
-  <div class="rounded-tarjeta border border-borde bg-lienzo-alto p-4">
+  <div class="rounded-xl border border-border bg-card p-4">
     <div v-if="metodo === 'bizum'" class="flex items-start gap-3">
       <IconoBizum class="size-10 shrink-0" />
       <div class="min-w-0 flex-1">
         <p class="font-medium">Bizum a nuestro código de ONG</p>
-        <p class="mt-1 text-sm text-tinta-suave">
+        <p class="mt-1 text-sm text-muted-foreground">
           En tu app del banco: Bizum → Donativos / ONG → busca el código
-          <strong class="font-medium text-tinta">Movimiento Consolación</strong>.
+          <strong class="font-medium text-foreground">Movimiento Consolación</strong>.
         </p>
 
         <button
           type="button"
-          class="mt-3 flex items-center gap-2 rounded-lg border border-borde bg-lienzo px-3 py-2 font-mono text-lg font-semibold tracking-wider transition hover:border-acento"
+          class="mt-3 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 font-mono text-lg font-semibold tracking-wider transition hover:border-primary"
           @click="copiar(CODIGO_BIZUM_ONG)"
         >
           {{ CODIGO_BIZUM_ONG }}
-          <span class="text-xs font-normal text-tinta-suave">
+          <span class="text-xs font-normal text-muted-foreground">
             {{ copiado ? '¡Copiado!' : 'Copiar' }}
           </span>
         </button>
 
-        <p class="mt-2 text-xs text-tinta-suave">
+        <p class="mt-2 text-xs text-muted-foreground">
           Como concepto, pon <strong>{{ concepto }}</strong
           >.
         </p>
@@ -56,20 +56,20 @@ onBeforeUnmount(() => clearTimeout(temporizador))
       <IconoTransferencia class="size-10 shrink-0" />
       <div class="min-w-0 flex-1">
         <p class="font-medium">Transferencia bancaria</p>
-        <p class="mt-1 text-sm text-tinta-suave">A esta cuenta:</p>
+        <p class="mt-1 text-sm text-muted-foreground">A esta cuenta:</p>
 
         <button
           type="button"
-          class="mt-3 flex w-full items-center justify-between gap-2 rounded-lg border border-borde bg-lienzo px-3 py-2 font-mono text-sm font-semibold tracking-wide transition hover:border-acento sm:text-base"
+          class="mt-3 flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm font-semibold tracking-wide transition hover:border-primary sm:text-base"
           @click="copiar(IBAN_TRANSFERENCIA)"
         >
           {{ IBAN_TRANSFERENCIA }}
-          <span class="shrink-0 text-xs font-normal text-tinta-suave">
+          <span class="shrink-0 text-xs font-normal text-muted-foreground">
             {{ copiado ? '¡Copiado!' : 'Copiar' }}
           </span>
         </button>
 
-        <p class="mt-2 text-xs text-tinta-suave">
+        <p class="mt-2 text-xs text-muted-foreground">
           Como concepto, pon <strong>{{ concepto }}</strong
           >.
         </p>

@@ -19,7 +19,7 @@ useSeoMeta({ title: 'Pago recibido' })
     <TicketImpresora>
       <IconoExito class="mx-auto" />
       <h1 class="mt-2 text-2xl font-semibold">¡Pago recibido!</h1>
-      <p class="mx-auto mt-2 max-w-sm text-sm text-tinta-suave">
+      <p class="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
         Gracias. Te llega un correo con el detalle del pedido. Si has elegido mensajería, te
         confirmamos el coste del envío antes de mandar nada.
       </p>
@@ -31,13 +31,13 @@ useSeoMeta({ title: 'Pago recibido' })
       <div class="mt-6 flex flex-wrap justify-center gap-2">
         <NuxtLink
           to="/mis-pedidos"
-          class="rounded-lg bg-acento px-4 py-2.5 text-sm font-medium text-sobre-acento transition hover:bg-acento-alto"
+          class="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
         >
           Ver mis pedidos
         </NuxtLink>
         <NuxtLink
           to="/"
-          class="rounded-lg border border-borde px-4 py-2.5 text-sm font-medium transition hover:border-tinta-suave"
+          class="rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition hover:border-muted-foreground"
         >
           Volver al catálogo
         </NuxtLink>
