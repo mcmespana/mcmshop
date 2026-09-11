@@ -42,9 +42,17 @@ export interface FormularioRedsys {
   Ds_Signature: string
 }
 
+/**
+ * Se quita todo el espacio en blanco antes de decodificar: la clave llega de una
+ * variable de entorno pegada a mano, y un salto de línea al final basta para que
+ * el base64 decodifique a una longitud que no es la que espera 3DES.
+ */
 function base64Url(texto: string): Buffer {
-  return Buffer.from(texto.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+  return Buffer.from(texto.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/'), 'base64')
 }
+
+/** 3DES (`des-ede3-cbc`) sólo admite claves de esta longitud exacta. */
+const BYTES_CLAVE_3DES = 24
 
 /**
  * Deriva la clave de esta operación cifrando el número de pedido con 3DES-CBC y
@@ -53,6 +61,22 @@ function base64Url(texto: string): Buffer {
  */
 function claveDeOperacion(claveComercio: string, numeroPedido: string): Buffer {
   const clave = base64Url(claveComercio)
+
+  // Sin esto, `createCipheriv` lanza un "Invalid key length" pelado que sale como
+  // un 500 sin pista: el error no menciona ni Redsys ni la variable que hay que
+  // mirar. La clave buena son 32 caracteres base64, y las de pruebas y producción
+  // son distintas, así que equivocarse de una es justo lo que pasa al desplegar.
+  if (clave.length !== BYTES_CLAVE_3DES) {
+    console.error(
+      `[redsys] NUXT_REDSYS_CLAVE no vale: decodifica a ${clave.length} bytes y hacen falta ` +
+        `${BYTES_CLAVE_3DES}. Revisa que esté completa y que sea la del entorno en uso.`,
+    )
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'El pago con tarjeta no está bien configurado. Avísanos y lo miramos.',
+    })
+  }
+
   const cifrador = createCipheriv('des-ede3-cbc', clave, Buffer.alloc(8))
   cifrador.setAutoPadding(false)
 
