@@ -9,6 +9,11 @@
  * que no perder la venta.
  */
 
+import {
+  CODIGO_BIZUM_ONG,
+  HORAS_RESPUESTA_TRANSFERENCIA,
+  IBAN_TRANSFERENCIA,
+} from '../../shared/utils/pago'
 import { formatearEuros } from './dinero'
 
 export interface LineaCorreo {
@@ -23,6 +28,12 @@ export interface DatosCorreo {
   lineas: LineaCorreo[]
   totalCentimos: number
   modo: 'b2b' | 'b2c'
+  /**
+   * Cómo paga. No se deduce del modo: una delegación puede pagar con tarjeta y un
+   * particular por transferencia, y equivocarse aquí es mandarle instrucciones de
+   * Bizum a quien ya ha pagado.
+   */
+  formaDePago: 'transferencia' | 'bizum' | 'tarjeta'
   transporte: 'consolacion' | 'mensajeria'
   notas?: string
 }
@@ -128,6 +139,13 @@ function envoltorio(contenido: string): string {
 </body></html>`
 }
 
+/** Lo que el equipo necesita saber de un vistazo: si hay que perseguir el cobro o no. */
+const PAGO_EQUIPO = {
+  tarjeta: 'Tarjeta — YA COBRADO',
+  bizum: 'Bizum ONG — pendiente de confirmar',
+  transferencia: `Transferencia — hay que escribirle en menos de ${HORAS_RESPUESTA_TRANSFERENCIA} h con el importe final`,
+} as const
+
 const TRANSPORTE = {
   consolacion:
     'Te llegará cuando alguien de la Familia Consolación vaya para allá. Sin coste de envío.',
@@ -135,27 +153,93 @@ const TRANSPORTE = {
     'Te lo enviamos por agencia. El coste depende del destino y del peso, así que te lo confirmamos por correo antes de enviar nada.',
 } as const
 
-/** Confirmación al cliente, con las instrucciones de pago según el público. */
+const VERDE = '#13684b'
+
+/**
+ * El código de Bizum, grande y a la vista.
+ *
+ * En tabla y con estilos en línea porque es lo único que sobrevive a Outlook y a
+ * Gmail. Quien abre este correo lo hace para pagar: el código es el contenido,
+ * no un detalle dentro de un párrafo.
+ */
+function codigoBizum(): string {
+  return `
+    <table role="presentation" width="100%" style="border-collapse:collapse;margin:12px 0 8px;">
+      <tr>
+        <td align="center" style="border:2px dashed #b9d4c8;border-radius:12px;background:#eff6f2;padding:18px 12px;">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6b6a66;">
+            Código de la ONG
+          </div>
+          <div style="margin-top:6px;font-family:Menlo,Consolas,'Courier New',monospace;font-size:40px;font-weight:700;letter-spacing:0.18em;line-height:1.1;color:${VERDE};">
+            ${CODIGO_BIZUM_ONG}
+          </div>
+        </td>
+      </tr>
+    </table>`
+}
+
+/** Qué tiene que hacer la persona ahora, que depende de cómo haya elegido pagar. */
+function bloquePago(datos: DatosCorreo): string {
+  const titulo = (texto: string) =>
+    `<h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">${texto}</h2>`
+  const concepto = escapar(datos.cliente.nombre || datos.cliente.email)
+
+  if (datos.formaDePago === 'tarjeta') {
+    return `
+      ${titulo('El pago')}
+      <p style="margin:0;line-height:1.5;">
+        <strong>Ya está pagado con tarjeta.</strong> No tienes que hacer nada más:
+        nos ponemos con tu pedido.
+      </p>`
+  }
+
+  if (datos.formaDePago === 'bizum') {
+    return `
+      ${titulo('Cómo se paga')}
+      <p style="margin:0;line-height:1.5;">
+        Con <strong>Bizum</strong>, desde tu banco: Bizum → <strong>Donativos / ONG</strong> y busca
+        este código.
+      </p>
+      ${codigoBizum()}
+      <p style="margin:0;line-height:1.5;color:#6b6a66;font-size:13px;">
+        Pon <strong style="color:#2b2a26;">${concepto}</strong> como concepto, para que sepamos que
+        es tuyo.
+      </p>`
+  }
+
+  return `
+    ${titulo('Cómo se paga')}
+    <p style="margin:0 0 8px;line-height:1.5;">
+      Por <strong>transferencia</strong>. Te escribimos en
+      <strong>menos de ${HORAS_RESPUESTA_TRANSFERENCIA} horas</strong> con el importe final y la
+      referencia, así que no hace falta que hagas nada todavía.
+    </p>
+    <p style="margin:0;line-height:1.5;color:#6b6a66;font-size:13px;">
+      Si prefieres ir adelantándolo, la cuenta es
+      <strong style="color:#2b2a26;white-space:nowrap;">${IBAN_TRANSFERENCIA}</strong>,
+      con <strong style="color:#2b2a26;">${concepto}</strong> como concepto.
+    </p>`
+}
+
+/** Confirmación al cliente, con lo que tiene que hacer según cómo vaya a pagar. */
 export function confirmacionCliente(datos: DatosCorreo): Promise<boolean> {
-  const pago =
-    datos.modo === 'b2b'
-      ? `<p style="margin:0 0 8px;">El pago es por <strong>transferencia</strong>. En cuanto revisemos el pedido te mandamos el IBAN y la referencia.</p>`
-      : `<p style="margin:0 0 8px;">El pago es por <strong>Bizum ONG</strong>. En cuanto revisemos el pedido te mandamos el código y las instrucciones.</p>`
+  const pagado = datos.formaDePago === 'tarjeta'
 
   return enviar({
     para: datos.cliente.email,
-    asunto: 'Hemos recibido tu pedido · Tienda MCM',
+    asunto: pagado ? 'Pedido confirmado y pagado · Tienda MCM' : 'Hemos recibido tu pedido · Tienda MCM',
     html: envoltorio(`
-      <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;">Pedido recibido</h1>
+      <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;">
+        ${pagado ? '¡Pedido confirmado!' : 'Pedido recibido'}
+      </h1>
       <p style="margin:0 0 16px;line-height:1.5;">
         Hola${datos.cliente.nombre ? ` ${escapar(datos.cliente.nombre.split(' ')[0]!)}` : ''},
         te hemos apuntado esto:
       </p>
       ${tablaLineas(datos.lineas, datos.totalCentimos)}
       <h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">Cómo te llega</h2>
-      <p style="margin:0 0 16px;line-height:1.5;">${TRANSPORTE[datos.transporte]}</p>
-      <h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">Cómo se paga</h2>
-      ${pago}
+      <p style="margin:0;line-height:1.5;">${TRANSPORTE[datos.transporte]}</p>
+      ${bloquePago(datos)}
       <p style="margin:24px 0 0;line-height:1.5;color:#6b6a66;">
         Si algo no cuadra, responde a este correo y lo miramos.
       </p>
@@ -181,6 +265,9 @@ export function avisoEquipo(datos: DatosCorreo & { idPedido: string }): Promise<
       <p style="margin:0 0 16px;color:#6b6a66;font-size:13px;">${escapar(datos.cliente.email)}</p>
       ${tablaLineas(datos.lineas, datos.totalCentimos)}
       <p style="margin:16px 0 0;line-height:1.5;">
+        <strong>Pago:</strong> ${PAGO_EQUIPO[datos.formaDePago]}
+      </p>
+      <p style="margin:8px 0 0;line-height:1.5;">
         <strong>Transporte:</strong> ${datos.transporte === 'consolacion' ? 'Consolación (gratis)' : 'Mensajería urgente — hay que presupuestar y añadir la línea'}
       </p>
       ${datos.notas ? `<p style="margin:8px 0 0;line-height:1.5;"><strong>Nota:</strong> ${escapar(datos.notas)}</p>` : ''}

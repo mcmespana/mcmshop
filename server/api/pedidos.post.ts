@@ -91,6 +91,7 @@ export default defineEventHandler(async (event) => {
     lineas: lineasCorreo,
     totalCentimos,
     modo: datos.modo,
+    formaDePago: datos.formaDePago,
     transporte: datos.transporte,
     notas: datos.notas,
   }

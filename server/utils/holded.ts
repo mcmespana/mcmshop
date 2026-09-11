@@ -150,6 +150,22 @@ export function listarContactos(): Promise<ContactoHolded[]> {
   return listarTodo<ContactoHolded>('/contacts')
 }
 
+/**
+ * ¿Este contacto es una MCM Local?
+ *
+ * El criterio vive en Holded: el tag `mcmlocal`. Abrir una MCM Local nueva es
+ * etiquetar su contacto, sin tocar código.
+ *
+ * Se compara **normalizando** (minúsculas, sin espacios, guiones ni puntos)
+ * porque el tag se teclea a mano en la ficha del contacto: quien escribe
+ * "MCM Local" o "mcm-local" está poniendo el mismo tag, y una MCM Local que se
+ * ve bien etiquetada en Holded pero no aparece en el selector es un fallo
+ * imposible de diagnosticar desde fuera.
+ */
+export function esMcmLocal(contacto: { tags?: string[] | null }): boolean {
+  return (contacto.tags ?? []).some((t) => t.toLowerCase().replace(/[\s._-]/g, '') === 'mcmlocal')
+}
+
 /** Ficha completa de un contacto por id. */
 export function obtenerContacto(id: string): Promise<ContactoHolded> {
   return peticion<ContactoHolded>(`/contacts/${id}`)

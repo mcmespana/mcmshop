@@ -25,6 +25,10 @@ useSeoMeta({ title: 'Pago recibido' })
       </p>
 
       <div class="mx-auto mt-6 max-w-sm text-left">
+        <InstruccionesPago metodo="tarjeta" />
+      </div>
+
+      <div class="mx-auto mt-4 max-w-sm text-left">
         <ContactoAyuda variante="destacada" />
       </div>
 

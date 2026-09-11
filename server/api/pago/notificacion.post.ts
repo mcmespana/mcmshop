@@ -77,6 +77,7 @@ export default defineEventHandler(async (event) => {
     lineas: lineasCorreo,
     totalCentimos,
     modo: guardado.solicitud.modo,
+    formaDePago: 'tarjeta' as const,
     transporte: guardado.solicitud.transporte,
     notas: guardado.solicitud.notas,
   }

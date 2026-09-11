@@ -1,4 +1,4 @@
-import { listarContactos } from '../utils/holded'
+import { esMcmLocal, listarContactos } from '../utils/holded'
 
 /**
  * Las delegaciones locales, para el selector de la pantalla de bienvenida.
@@ -15,7 +15,7 @@ export default defineCachedEventHandler(
     const contactos = await listarContactos()
 
     const delegaciones = contactos
-      .filter((c) => (c.tags ?? []).some((t) => t.trim().toLowerCase() === 'mcmlocal'))
+      .filter(esMcmLocal)
       .map((c) => ({ id: c.id, nombre: c.name }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
 
