@@ -196,10 +196,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
         </template>
       </p>
 
-      <div
-        v-if="formaDePago === 'bizum' || formaDePago === 'transferencia'"
-        class="mx-auto mt-6 max-w-sm text-left"
-      >
+      <div class="mx-auto mt-6 max-w-sm text-left">
         <InstruccionesPago :metodo="formaDePago" :concepto="formulario.nombre || formulario.email" />
       </div>
 

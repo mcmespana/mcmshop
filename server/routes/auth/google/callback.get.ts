@@ -1,4 +1,4 @@
-import { buscarContactoPorEmail } from '../../../utils/holded'
+import { buscarContactoPorEmail, esMcmLocal } from '../../../utils/holded'
 import { guardarSesion } from '../../../utils/sesion'
 
 interface RespuestaToken {
@@ -76,8 +76,7 @@ export default defineEventHandler(async (event) => {
     const contacto = await buscarContactoPorEmail(perfil.email)
     if (contacto) {
       contactoId = contacto.id
-      // El tag `mcmlocal` ya identifica a las 10 delegaciones en Holded.
-      esDelegacion = (contacto.tags ?? []).includes('mcmlocal')
+      esDelegacion = esMcmLocal(contacto)
     }
   } catch {
     // Si Holded no responde, se entra igual: el login no puede depender del ERP.

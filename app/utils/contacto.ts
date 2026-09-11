@@ -1,14 +1,14 @@
 /**
- * Datos de contacto y cuentas de cobro del equipo. Viven aquí, en un solo sitio,
- * porque aparecen en varias pantallas: instrucciones de pago, confirmación,
- * pie de página y la pantalla de "algo ha ido mal".
+ * Datos de contacto del equipo. Viven aquí, en un solo sitio, porque aparecen en
+ * varias pantallas: instrucciones de pago, confirmación, pie de página y la
+ * pantalla de "algo ha ido mal".
+ *
+ * Los datos de cobro (Bizum, IBAN) están en `shared/utils/pago.ts`: los usan
+ * también los correos, que se montan en el servidor.
  */
 
 export const TELEFONO_CONTACTO = '649949583'
 export const EMAIL_CONTACTO = 'ajmcm@movimientoconsolacion.com'
-
-export const CODIGO_BIZUM_ONG = '09038'
-export const IBAN_TRANSFERENCIA = 'ES07 0081 5240 0000 0324 5534'
 
 /** Enlace de WhatsApp con un mensaje ya escrito, listo para pulsar y enviar. */
 export function enlaceWhatsapp(mensaje?: string): string {

@@ -1,4 +1,4 @@
-import { obtenerContacto } from '../../utils/holded'
+import { esMcmLocal, obtenerContacto } from '../../utils/holded'
 
 /**
  * Ficha completa de una MCM Local concreta: email y dirección, para
@@ -18,7 +18,7 @@ export default defineCachedEventHandler(
     }
 
     const contacto = await obtenerContacto(id).catch(() => null)
-    if (!contacto || !(contacto.tags ?? []).some((t) => t.trim().toLowerCase() === 'mcmlocal')) {
+    if (!contacto || !esMcmLocal(contacto)) {
       throw createError({ statusCode: 404, statusMessage: 'Esa MCM Local no existe.' })
     }
 
