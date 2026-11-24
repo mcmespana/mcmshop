@@ -15,6 +15,11 @@ const { data } = await useFetch<{ delegaciones: Delegacion[] }>('/api/delegacion
 const paso = ref<'inicio' | 'delegaciones'>('inicio')
 const busqueda = ref('')
 const cargandoDetalle = ref<string | null>(null)
+/**
+ * Qué opción se ha tocado. Entrar a la tienda espera al catálogo, y sin esto la
+ * tarjeta se quedaba quieta un segundo largo como si no hubiera pasado nada.
+ */
+const entrando = ref<string | null>(null)
 
 const lista = computed(() => {
   const todas = data.value?.delegaciones ?? []
@@ -43,6 +48,7 @@ async function entrarComoDelegacion(elegida: Delegacion) {
 }
 
 function entrarComoPersona() {
+  entrando.value = 'persona'
   salirDelEvento()
   elegirPersonal()
   router.push('/')
@@ -54,6 +60,7 @@ function entrarComoPersona() {
  * opciones lo quita, que es lo que espera quien vuelve a casa y pide online.
  */
 function entrarEnEvento(id: string) {
+  entrando.value = id
   activarEvento(id)
   elegirPersonal()
   router.push('/')
@@ -96,6 +103,8 @@ useSeoMeta({ title: 'Bienvenido' })
             :key="e.id"
             :evento="e"
             :retraso="60 + i * 80"
+            :cargando="entrando === e.id"
+            :disabled="entrando !== null"
             @elegir="entrarEnEvento(e.id)"
           />
           <p
@@ -128,11 +137,20 @@ useSeoMeta({ title: 'Bienvenido' })
           type="button"
           class="mcm-animar-entrada group flex w-full items-center gap-3.5 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-primary/5"
           :style="{ animationDelay: `${160 + desfase}ms` }"
+          :disabled="entrando !== null"
+          :aria-busy="entrando === 'persona'"
           @click="entrarComoPersona"
         >
           <IconoPersona class="size-11 shrink-0 transition-transform group-hover:scale-110" />
           <span>
-            <span class="block font-medium">Materiales para mí, a título personal</span>
+            <span class="flex items-center gap-2 font-medium">
+              Materiales para mí, a título personal
+              <span
+                v-if="entrando === 'persona'"
+                class="size-3.5 shrink-0 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent"
+                aria-hidden="true"
+              />
+            </span>
             <span class="mt-0.5 block text-sm text-muted-foreground">
               Camisetas, sudaderas y más, para monitores o miembros del MCM.
             </span>

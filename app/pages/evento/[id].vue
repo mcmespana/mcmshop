@@ -8,7 +8,7 @@
  */
 const ruta = useRoute()
 const { activar } = useEvento()
-const { haElegido, elegirPersonal } = useModo()
+const { elegirPersonal } = useModo()
 
 const id = String(ruta.params.id ?? '')
 const evento = eventoActivo(id)
@@ -16,9 +16,9 @@ const existe = EVENTOS.some((e) => e.id === id)
 
 if (evento) {
   activar(evento.id)
-  // Sin esto, la bienvenida le preguntaría a cada persona de la cola si es una
-  // MCM Local. En un puesto se compra para uno mismo.
-  if (!haElegido.value) elegirPersonal()
+  // En un puesto se compra para uno mismo, aunque ese móvil se usara antes
+  // para pedir como MCM Local: quien escanea el QR del puesto viene a eso.
+  elegirPersonal()
   await navigateTo('/', { replace: true })
 }
 
