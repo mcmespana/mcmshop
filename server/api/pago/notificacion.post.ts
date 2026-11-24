@@ -7,6 +7,9 @@ interface PagoGuardado {
   solicitud: SolicitudPedido
   totalCentimos: number
   pedidoHoldedId?: string
+  /** Número del tique, en ventas de evento: lo pregunta la pantalla de vuelta del banco. */
+  numero?: string | null
+  rechazado?: boolean
 }
 
 /**
@@ -43,9 +46,13 @@ export default defineEventHandler(async (event) => {
     console.warn(
       `[redsys] Pago ${respuesta.numeroPedido} rechazado (código ${respuesta.codigoRespuesta}).`,
     )
-    await almacen.removeItem(respuesta.numeroPedido)
+    // Se marca en vez de borrar: la pantalla de vuelta del banco pregunta por
+    // este pago y tiene que poder decir "no ha pasado" en vez de esperar sin fin.
+    await almacen.setItem(respuesta.numeroPedido, { ...guardado, rechazado: true })
     return { recibido: true, autorizada: false }
   }
+
+  if (guardado.rechazado) return { recibido: true, autorizada: false }
 
   // Ya creado en un reintento anterior: no se duplica.
   if (guardado.pedidoHoldedId) {
@@ -63,12 +70,12 @@ export default defineEventHandler(async (event) => {
     return { recibido: true, autorizada: true, discrepancia: true }
   }
 
-  const { id, totalCentimos, lineasCorreo } = await crearPedidoCompleto(
+  const { id, totalCentimos, lineasCorreo, numero } = await crearPedidoCompleto(
     { ...guardado.solicitud, referenciaPago: respuesta.codigoAutorizacion ?? undefined },
     'tarjeta',
   )
 
-  await almacen.setItem(respuesta.numeroPedido, { ...guardado, pedidoHoldedId: id })
+  await almacen.setItem(respuesta.numeroPedido, { ...guardado, pedidoHoldedId: id, numero })
 
   const paraCorreo = {
     cliente: {

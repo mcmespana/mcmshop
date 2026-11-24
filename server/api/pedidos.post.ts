@@ -14,7 +14,7 @@ const esquemaBase = z.object({
    * comparte este esquema pero nunca llega a crear el pedido con él — lo crea
    * la notificación de Redsys, una vez que el banco confirma el cobro.
    */
-  formaDePago: z.enum(['transferencia', 'bizum', 'efectivo']).optional(),
+  formaDePago: z.enum(['transferencia', 'bizum', 'efectivo', 'datafono']).optional(),
   transporte: z.enum(['consolacion', 'mensajeria', 'en-mano']),
   /** Id del evento presencial, si el pedido se hace en un puesto. */
   evento: z.string().max(60).optional(),
@@ -63,10 +63,18 @@ export const esquemaPedido = esquemaBase.superRefine((datos, ctx) => {
     if (datos.transporte !== 'en-mano') {
       ctx.addIssue({ code: 'custom', message: 'en-mano', path: ['transporte'] })
     }
+    // El datáfono sólo existe en los eventos que lo llevan.
+    if (datos.formaDePago === 'datafono' && !evento.datafono) {
+      ctx.addIssue({ code: 'custom', message: 'sin-datafono', path: ['formaDePago'] })
+    }
     return
   }
   if (!datos.cliente.email) ctx.addIssue({ code: 'custom', message: 'email', path: ['cliente'] })
-  if (datos.formaDePago === 'efectivo' || datos.transporte === 'en-mano') {
+  if (
+    datos.formaDePago === 'efectivo' ||
+    datos.formaDePago === 'datafono' ||
+    datos.transporte === 'en-mano'
+  ) {
     ctx.addIssue({ code: 'custom', message: 'solo-evento', path: ['formaDePago'] })
   }
 })
@@ -115,12 +123,14 @@ export default defineEventHandler(async (event) => {
   const almacen = useStorage('pedidos')
 
   // Un reintento tras un timeout no puede crear un segundo pedido en Holded.
-  const yaHecho = await almacen.getItem<{ id: string }>(datos.claveIdempotencia)
-  if (yaHecho) return { id: yaHecho.id, repetido: true }
+  const yaHecho = await almacen.getItem<{ id: string; numero?: string | null }>(
+    datos.claveIdempotencia,
+  )
+  if (yaHecho) return { id: yaHecho.id, numero: yaHecho.numero ?? null, repetido: true }
 
   const sesion = await leerSesion(event)
 
-  const { id, totalCentimos, lineasCorreo } = await crearPedidoCompleto(
+  const { id, totalCentimos, lineasCorreo, numero } = await crearPedidoCompleto(
     {
       ...datos,
       contactoConocido:
@@ -129,7 +139,7 @@ export default defineEventHandler(async (event) => {
     datos.formaDePago,
   )
 
-  await almacen.setItem(datos.claveIdempotencia, { id })
+  await almacen.setItem(datos.claveIdempotencia, { id, numero })
 
   // Los correos van después de guardar la idempotencia y sin bloquear: el pedido
   // ya existe y un fallo de Resend no puede convertirse en un error que empuje al
@@ -151,5 +161,5 @@ export default defineEventHandler(async (event) => {
     ]),
   )
 
-  return { id, repetido: false, totalCentimos }
+  return { id, numero, repetido: false, totalCentimos }
 })

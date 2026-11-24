@@ -147,6 +147,7 @@ function envoltorio(contenido: string): string {
 const PAGO_EQUIPO = {
   tarjeta: 'Tarjeta — YA COBRADO',
   efectivo: 'Efectivo en el puesto — comprobar la caja',
+  datafono: 'Tarjeta con el datáfono del puesto — comprobar el cobro',
   bizum: 'Bizum ONG — pendiente de confirmar',
   transferencia: `Transferencia — hay que escribirle en menos de ${HORAS_RESPUESTA_TRANSFERENCIA} h con el importe final`,
 } as const
@@ -197,6 +198,12 @@ function bloquePago(datos: DatosCorreo): string {
         <strong>Ya está pagado con tarjeta.</strong> No tienes que hacer nada más:
         nos ponemos con tu pedido.
       </p>`
+  }
+
+  if (datos.formaDePago === 'datafono') {
+    return `
+      ${titulo('El pago')}
+      <p style="margin:0;line-height:1.5;">Con <strong>tarjeta</strong>, en el datáfono del puesto.</p>`
   }
 
   if (datos.formaDePago === 'efectivo') {

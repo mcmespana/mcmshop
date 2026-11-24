@@ -4,8 +4,14 @@
  * viene por el slot) dentro de una impresora de tickets: una ranura arriba y
  * el papel "saliendo" a pasos con un corte dentado abajo, como un tique real.
  * El contenido no se toca — sólo cambia el marco que lo presenta.
+ *
+ * `compacto` quita relleno para el tique del puesto, que vive en un móvil de
+ * 360 px y necesita cada milímetro para el número y las líneas.
  */
-withDefaults(defineProps<{ imprimiendo?: boolean }>(), { imprimiendo: true })
+withDefaults(defineProps<{ imprimiendo?: boolean; compacto?: boolean }>(), {
+  imprimiendo: true,
+  compacto: false,
+})
 </script>
 
 <template>
@@ -15,7 +21,7 @@ withDefaults(defineProps<{ imprimiendo?: boolean }>(), { imprimiendo: true })
     </div>
     <div class="mcm-ticket-ventana">
       <div class="mcm-ticket-papel" :class="{ 'mcm-ticket-imprimir': imprimiendo }">
-        <div class="p-8 text-center">
+        <div :class="compacto ? 'overflow-hidden px-5 pt-5 pb-5' : 'p-8 text-center'">
           <slot />
         </div>
       </div>

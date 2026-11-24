@@ -72,6 +72,11 @@ export default defineNuxtConfig({
     redsysClave: '',
     /** `pruebas` o `produccion`. Cada entorno tiene SU PROPIA clave de firma. */
     redsysEntorno: 'pruebas',
+    /**
+     * Clave del TPV del equipo (`/tpv`). Vacía = TPV cerrado para todo el mundo:
+     * desde ahí se apuntan ventas como cobradas sin que nadie lo compruebe.
+     */
+    tpvClave: '',
     public: {
       siteUrl: 'http://localhost:3000',
     },
@@ -106,5 +111,7 @@ export default defineNuxtConfig({
       proyecto al preset `vercel-edge` sin sacar antes estas rutas.
     */
     '/api/pago/**': { isr: false },
+    '/api/tpv/**': { isr: false },
+    '/tpv': { isr: false },
   },
 })

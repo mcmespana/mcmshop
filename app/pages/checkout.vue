@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { PagoTique, Tique } from '~/composables/useTiques'
+
 const { lineas, totalCentimos, unidades, vacio, vaciar } = useCarrito()
 const { modo, delegacion, proponer } = useModo()
 const { evento } = useEvento()
+const { guardar: guardarTique } = useTiques()
 
 const { data: sesion } = await useFetch('/api/sesion')
 
@@ -90,7 +93,7 @@ const importePedido = ref(0)
  *  - B2C: bizum, transferencia o tarjeta, las tres a la vista.
  *  - B2B: transferencia por delante; bizum y tarjeta viven en "otros métodos".
  */
-type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo'
+type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | 'datafono'
 function pagoPorDefecto(): FormaDePago {
   if (evento.value) return 'efectivo'
   return modo.value === 'b2b' ? 'transferencia' : 'bizum'
@@ -157,6 +160,19 @@ async function enviar() {
         body: { claveIdempotencia: claveIdempotencia.value, ...datosComunes() },
       })
 
+      // En el puesto, el tique se guarda ya, sin número: al volver del banco la
+      // pantalla del tique pregunta hasta que el cobro esté confirmado.
+      if (evento.value) {
+        guardarTique(
+          tiqueDelCarrito({
+            numero: null,
+            estado: 'esperando-banco',
+            pagoRedsys: redsys.numeroPedido,
+            totalCentimos: totalCentimos.value,
+          }),
+        )
+      }
+
       const form = document.createElement('form')
       form.method = 'POST'
       form.action = redsys.url
@@ -178,7 +194,7 @@ async function enviar() {
       return
     }
 
-    await $fetch('/api/pedidos', {
+    const respuesta = await $fetch('/api/pedidos', {
       method: 'POST',
       body: {
         claveIdempotencia: claveIdempotencia.value,
@@ -186,6 +202,23 @@ async function enviar() {
         ...datosComunes(),
       },
     })
+
+    // En el puesto no hay pantalla de "gracias": hay un tique que enseñar.
+    if (evento.value) {
+      const tique = tiqueDelCarrito({
+        numero: respuesta.numero ?? null,
+        estado: 'confirmado',
+        totalCentimos:
+          'totalCentimos' in respuesta && respuesta.totalCentimos
+            ? respuesta.totalCentimos
+            : totalCentimos.value,
+      })
+      guardarTique(tique)
+      vaciar()
+      await navigateTo({ path: '/tique', query: { t: tique.clave, nuevo: '1' } })
+      return
+    }
+
     importePedido.value = totalCentimos.value
     pedidoHecho.value = true
     vaciar()
@@ -193,6 +226,27 @@ async function enviar() {
     const mensaje = (e as { statusMessage?: string })?.statusMessage
     error.value = mensaje ?? 'No hemos podido registrar el pedido. Inténtalo en un momento.'
     enviando.value = false
+  }
+}
+
+/** El tique del puesto a partir del carrito, antes de vaciarlo. */
+function tiqueDelCarrito(extra: Pick<Tique, 'numero' | 'estado' | 'totalCentimos'> & { pagoRedsys?: string }): Tique {
+  const e = evento.value!
+  return {
+    clave: claveIdempotencia.value,
+    eventoId: e.id,
+    eventoNombre: e.nombre,
+    lugar: e.lugar ?? null,
+    nombre: formulario.nombre.trim(),
+    lineas: lineas.value.map((l) => ({
+      nombre: l.nombre,
+      variante: l.variante,
+      cantidad: l.cantidad,
+      precioCentimos: l.precioCentimos,
+    })),
+    pago: formaDePago.value as PagoTique,
+    creadoEn: new Date().toISOString(),
+    ...extra,
   }
 }
 
@@ -274,11 +328,16 @@ useSeoMeta({ title: 'Finalizar pedido' })
 
       <!-- Login opcional: se invita, no se obliga -->
       <div
-        v-if="!sesion?.autenticado && !evento"
+        v-if="!sesion?.autenticado"
         class="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
       >
         <p class="flex-1 text-sm text-muted-foreground">
-          Si entras con Google te rellenamos los datos y podrás ver tus pedidos anteriores.
+          <template v-if="evento">
+            Si quieres, entra con Google y el pedido queda guardado también en tu cuenta.
+          </template>
+          <template v-else>
+            Si entras con Google te rellenamos los datos y podrás ver tus pedidos anteriores.
+          </template>
         </p>
         <a
           href="/auth/google?destino=/checkout"
@@ -292,20 +351,38 @@ useSeoMeta({ title: 'Finalizar pedido' })
         <h2 class="font-medium">Tus datos</h2>
 
         <div class="grid gap-3 sm:grid-cols-2">
-          <!-- En el puesto lo que importa es el nombre; el correo opcional va detrás -->
-          <label class="block" :class="{ 'order-2': evento }">
-            <span class="mb-1 block text-xs text-muted-foreground">
-              {{ evento ? 'Correo (opcional, para mandarte el justificante)' : 'Correo electrónico' }}
+          <!--
+            En el puesto sólo hace falta saber de quién es el pedido: un campo,
+            nombre y localidad juntos. El correo no se pide (si ha entrado con
+            Google, se manda el suyo sin preguntar).
+          -->
+          <label v-if="evento" class="block sm:col-span-2">
+            <span class="mb-1 block text-xs text-muted-foreground">Nombre y localidad</span>
+            <input
+              v-model="formulario.nombre"
+              type="text"
+              required
+              minlength="2"
+              autocomplete="name"
+              placeholder="Marta, Vila-real"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-base outline-none focus:border-primary"
+            />
+            <span class="mt-1 block text-xs text-muted-foreground">
+              Es lo que diremos en el puesto para darte tu pedido.
             </span>
+          </label>
+
+          <label v-if="!evento" class="block">
+            <span class="mb-1 block text-xs text-muted-foreground">Correo electrónico</span>
             <input
               v-model="formulario.email"
               type="email"
-              :required="!evento"
+              required
               class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </label>
 
-          <label class="block">
+          <label v-if="!evento" class="block">
             <span class="mb-1 block text-xs text-muted-foreground">
               {{ modo === 'b2b' ? 'Nombre de tu MCM Local' : 'Nombre y apellidos' }}
             </span>
@@ -480,7 +557,27 @@ useSeoMeta({ title: 'Finalizar pedido' })
             </span>
           </label>
 
+          <!--
+            Con datáfono en el puesto, la tarjeta se pasa allí: es más rápido que
+            ir al banco desde el móvil con la cola delante. Sin datáfono, pago
+            online con Redsys, que deja el pedido cobrado antes de llegar.
+          -->
           <label
+            v-if="evento.datafono"
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
+            :class="formaDePago === 'datafono' ? 'border-primary bg-primary/5' : 'border-border'"
+          >
+            <input v-model="formaDePago" type="radio" value="datafono" />
+            <IconoTarjeta class="size-9 shrink-0" />
+            <span>
+              <span class="block text-sm font-medium">Tarjeta</span>
+              <span class="block text-xs text-muted-foreground">
+                La pasas por el datáfono en el puesto.
+              </span>
+            </span>
+          </label>
+          <label
+            v-else
             class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
             :class="formaDePago === 'tarjeta' ? 'border-primary bg-primary/5' : 'border-border'"
           >

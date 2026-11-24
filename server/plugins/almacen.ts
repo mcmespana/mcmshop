@@ -39,4 +39,7 @@ export default defineNitroPlugin(() => {
   almacen.mount('pagos', upstash({ url, token, base: 'mcmshop:pagos', ttl: 30 * DIA }))
   almacen.mount('pedidos', upstash({ url, token, base: 'mcmshop:pedidos', ttl: DIA }))
   almacen.mount('limites', upstash({ url, token, base: 'mcmshop:limites', ttl: 60 * 60 }))
+  // Los contadores de número de pedido no caducan: un número repetido en el mismo
+  // evento es justo lo que no puede pasar en la cola de un puesto.
+  almacen.mount('contadores', upstash({ url, token, base: 'mcmshop:contadores' }))
 })

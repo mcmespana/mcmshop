@@ -2,7 +2,13 @@
 import type { Delegacion } from '~/composables/useModo'
 
 const { elegirDelegacion, elegirPersonal, delegacion } = useModo()
+const { activar: activarEvento, salir: salirDelEvento } = useEvento()
 const router = useRouter()
+
+/** Eventos publicados hoy: salen arriba del todo, antes que las dos opciones de siempre. */
+const eventos = eventosPublicados()
+/** Lo que entra después de las tarjetas de evento llega con ese retraso de más. */
+const desfase = eventos.length * 80
 
 const { data } = await useFetch<{ delegaciones: Delegacion[] }>('/api/delegaciones')
 
@@ -24,6 +30,7 @@ const lista = computed(() => {
  * golpe los diez correos de las MCM Locales.
  */
 async function entrarComoDelegacion(elegida: Delegacion) {
+  salirDelEvento()
   cargandoDetalle.value = elegida.id
   try {
     const detalle = await $fetch<Delegacion>(`/api/delegaciones/${elegida.id}`)
@@ -36,6 +43,18 @@ async function entrarComoDelegacion(elegida: Delegacion) {
 }
 
 function entrarComoPersona() {
+  salirDelEvento()
+  elegirPersonal()
+  router.push('/')
+}
+
+/**
+ * En un evento se compra para uno mismo y se recoge en el puesto: modo
+ * particular y modo evento a la vez. Elegir luego cualquiera de las otras dos
+ * opciones lo quita, que es lo que espera quien vuelve a casa y pide online.
+ */
+function entrarEnEvento(id: string) {
+  activarEvento(id)
   elegirPersonal()
   router.push('/')
 }
@@ -71,14 +90,29 @@ useSeoMeta({ title: 'Bienvenido' })
 
       <!-- Paso 1: qué quiere ver -->
       <div v-if="paso === 'inicio'" class="space-y-3">
-        <p class="mcm-animar-entrada text-sm font-medium" style="animation-delay: 60ms">
+        <template v-if="eventos.length">
+          <TarjetaEvento
+            v-for="(e, i) in eventos"
+            :key="e.id"
+            :evento="e"
+            :retraso="60 + i * 80"
+            @elegir="entrarEnEvento(e.id)"
+          />
+          <p
+            class="mcm-animar-entrada pt-3 text-sm font-medium"
+            :style="{ animationDelay: `${60 + desfase}ms` }"
+          >
+            Si no estás allí, ¿qué quieres ver?
+          </p>
+        </template>
+        <p v-else class="mcm-animar-entrada text-sm font-medium" style="animation-delay: 60ms">
           ¿Qué quieres ver?
         </p>
 
         <button
           type="button"
           class="mcm-animar-entrada group flex w-full items-center gap-3.5 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-primary/5"
-          style="animation-delay: 110ms"
+          :style="{ animationDelay: `${110 + desfase}ms` }"
           @click="paso = 'delegaciones'"
         >
           <IconoGrupo class="size-11 shrink-0 transition-transform group-hover:scale-110" />
@@ -93,7 +127,7 @@ useSeoMeta({ title: 'Bienvenido' })
         <button
           type="button"
           class="mcm-animar-entrada group flex w-full items-center gap-3.5 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-primary/5"
-          style="animation-delay: 160ms"
+          :style="{ animationDelay: `${160 + desfase}ms` }"
           @click="entrarComoPersona"
         >
           <IconoPersona class="size-11 shrink-0 transition-transform group-hover:scale-110" />
@@ -105,7 +139,10 @@ useSeoMeta({ title: 'Bienvenido' })
           </span>
         </button>
 
-        <p class="mcm-animar-entrada pt-2 text-xs text-muted-foreground" style="animation-delay: 200ms">
+        <p
+          class="mcm-animar-entrada pt-2 text-xs text-muted-foreground"
+          :style="{ animationDelay: `${200 + desfase}ms` }"
+        >
           Puedes cambiarlo cuando quieras. Puedes mirar el catálogo sin hacer un pedido haciendo
           click en una de las opciones anteriores.
         </p>

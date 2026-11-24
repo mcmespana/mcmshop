@@ -450,6 +450,24 @@ lo que va a pasar dicho antes de que pase.
   check dibujados con `stroke-dashoffset`, el confeti, y la impresora de tique que revela el
   papel con `clip-path` a pasos. Es el único momento de la app que se puede celebrar, y lleva
   su `prefers-reduced-motion` puesto. **No lo copies a otras pantallas.**
+- **La tarjeta de evento de la bienvenida tiene forma de entrada** (cuerpo + matriz
+  troquelada con las fechas). Va arriba y más grande que las otras dos opciones mientras
+  el evento está publicado. Su movimiento: la matriz "se sella" al llegar, un brillo la
+  cruza una vez (y otra al pasar el ratón), y el punto de "En marcha" late **sólo
+  mientras el evento está pasando**, que es lo único que dice ese bucle.
+- **El tique del puesto (`TiqueEvento`) es la segunda excepción celebratoria**, hermana de
+  la confirmación: se imprime con la misma impresora, al terminar cae un sello de PAGADO
+  o A COBRAR, y queda una franja "en vivo" con rayas que avanzan y la hora corriendo.
+  Ese bucle permanente tiene un trabajo: distinguir la pantalla de verdad de una captura.
+  Se diseña para quien lo **mira** (el equipo, con cola), no para quien lo tiene: número
+  enorme, nombre, líneas, total, sello.
+- **El TPV (`/tpv`) es una herramienta, no una tienda**: nada se celebra. Sólo dos
+  confirmaciones cortas — el contador de la tarjeta da un salto al sumar, y al registrar
+  aparece el número un segundo y medio y se va solo, para pasar a la siguiente persona
+  sin tocar nada más. Ticket en columna fija a partir de `lg`, hoja inferior en móvil.
+- **Mezclas de color en OKLab, no en OKLCH, cuando uno de los dos es blanco o gris**: un
+  color sin croma no tiene matiz, y en OKLCH la mezcla gira de tono (el tinte verde de la
+  tarjeta de evento salía rosado).
 - **Entrada en cascada de las tarjetas del catálogo** (`animation-delay` inline por tarjeta).
   El `keyframe` vive en el CSS global, el escalonado en el componente.
 - **El carrito es una barra inferior en móvil**, y el `body` lleva `padding-bottom` para que
