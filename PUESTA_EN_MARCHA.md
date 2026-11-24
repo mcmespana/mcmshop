@@ -48,6 +48,11 @@ tocarlo**. Sólo si algún día pones a la venta las Guías, Chapas o Estatutos,
 - **MCM Quintanar** tiene el correo `quintanar@movilmientoconsolacion.com` — el dominio
   está mal escrito, así que su login de Google nunca casaría con su contacto.
 - **MCM Zaragoza** no tiene email: no se le puede resolver el contacto por login.
+- **MCM Nules, MCM Benicarló-Vinaròs y MCM Madrid** no salen en el selector de MCM
+  Locales (comprobado el 24/11/2026 contra la tienda en producción). O no existe su
+  contacto en Holded, o existe sin el tag `mcmlocal`. En los dos casos se arregla en
+  Holded: crear el contacto (con su correo y dirección) y ponerle el tag. Tarda hasta
+  una hora en aparecer, que es lo que dura la caché de la lista.
 - Queda un **pedido de prueba** que hay que borrar: `6a7903a0aad33d885005a320`
   (MCM Castellón, 4,00 €, nota "PEDIDO DE PRUEBA — borrar").
 
@@ -142,14 +147,17 @@ aviso en el log. Los correos nunca tumban una venta.
 
 1. Conecta el repositorio. Nuxt se detecta solo, no hay que configurar comandos.
 2. Mete todas las variables de entorno del punto 2, 3 y 4.
-3. **Almacenamiento**: el portal usa `useStorage` para tres cosas — la caché del
-   catálogo, las claves de idempotencia de pedidos y el límite de peticiones por IP.
-   En un servidor único el driver por defecto vale; **en Vercel, con varias instancias,
-   hace falta un almacén compartido** (Redis del Marketplace, o KV). Sin él, cada
-   instancia tendría su propia caché y su propio contador de límite.
+3. **Bloqueante para cobrar con tarjeta: Redis compartido.** El carrito de un pago
+   con tarjeta se guarda al mandar al cliente al banco y se lee cuando el banco
+   avisa de que ha cobrado. En Vercel esas dos peticiones pueden caer en
+   instancias distintas, y sin almacén compartido la segunda no encuentra nada:
+   **el cliente paga y no se crea el pedido.** Lo mismo con la idempotencia de
+   pedidos y el límite por IP.
 
-   Vercel movió su KV al Marketplace (Upstash Redis), así que comprueba cómo se llama
-   ahora antes de configurarlo.
+   Vercel → proyecto → **Storage** → conectar **Upstash Redis** (Marketplace, plan
+   gratuito de sobra) → redesplegar. Mete solas `KV_REST_API_URL` y
+   `KV_REST_API_TOKEN`, y `server/plugins/almacen.ts` las coge sin tocar nada. Sin
+   ellas, en Vercel sale en el log `[almacen] Sin Redis compartido`.
 
 ### Webhooks de Holded (después del despliegue, necesita la URL pública)
 
@@ -266,6 +274,32 @@ Redsys deriva la clave de firma con **3DES**, que no existe en runtime edge. En 
 el preset por defecto despliega funciones Node, así que funciona tal cual. Lo que **no**
 se puede hacer es cambiar el proyecto al preset `vercel-edge` sin sacar antes las rutas
 de `/api/pago/`.
+
+---
+
+## 6 bis. Ventas en eventos presenciales
+
+Para vender en un puesto (pago en efectivo, Bizum o tarjeta ahí delante, sin envío
+y pidiendo sólo el nombre):
+
+1. **Dar de alta el evento** en `shared/utils/eventos.ts`: id, nombre y fechas
+   (desde/hasta, incluidas). Se puede editar desde GitHub en el navegador; al
+   guardar en `main` se publica solo. Fuera de fechas no hace nada, no hace falta
+   borrarlo.
+2. **En el puesto**, abrir `https://tienda.movimientoconsolacion.com/evento/<id>`
+   en la tablet o móvil del equipo, o ponerlo en un QR para que cada cual pida
+   desde el suyo. Ese dispositivo queda en modo evento (franja verde arriba con
+   "Salir") hasta que acaben las fechas.
+3. **En Holded**, los pedidos llegan con los tags `evento` y `evento<id>` (Holded
+   quita los guiones) y en la nota la forma de pago: efectivo y Bizum como "comprobar",
+   tarjeta como "COBRADO". Sin correo del cliente no hay confirmación por email, y
+   al equipo no le llega un aviso por cada venta del puesto.
+
+Si se quiere que lo vea todo el que entre esos días, sin enlace, se pone
+`paraTodos: true` en el evento. Ojo: entonces también lo verá quien compre desde
+casa, y podría elegir "efectivo".
+
+Cada venta sin correo crea un contacto nuevo en Holded con el nombre que se dé.
 
 ---
 

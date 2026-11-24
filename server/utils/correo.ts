@@ -15,6 +15,7 @@ import {
   IBAN_TRANSFERENCIA,
 } from '../../shared/utils/pago'
 import { formatearEuros } from './dinero'
+import type { FormaDePago, Transporte } from './pedido'
 
 export interface LineaCorreo {
   nombre: string
@@ -24,7 +25,8 @@ export interface LineaCorreo {
 }
 
 export interface DatosCorreo {
-  cliente: { nombre: string; email: string }
+  /** En un evento presencial el correo es opcional: sin él no se manda nada al cliente. */
+  cliente: { nombre: string; email?: string }
   lineas: LineaCorreo[]
   totalCentimos: number
   modo: 'b2b' | 'b2c'
@@ -33,9 +35,11 @@ export interface DatosCorreo {
    * particular por transferencia, y equivocarse aquí es mandarle instrucciones de
    * Bizum a quien ya ha pagado.
    */
-  formaDePago: 'transferencia' | 'bizum' | 'tarjeta'
-  transporte: 'consolacion' | 'mensajeria'
+  formaDePago: FormaDePago
+  transporte: Transporte
   notas?: string
+  /** Nombre del evento si se vendió en un puesto presencial. */
+  evento?: string
 }
 
 async function enviar(opciones: {
@@ -142,6 +146,7 @@ function envoltorio(contenido: string): string {
 /** Lo que el equipo necesita saber de un vistazo: si hay que perseguir el cobro o no. */
 const PAGO_EQUIPO = {
   tarjeta: 'Tarjeta — YA COBRADO',
+  efectivo: 'Efectivo en el puesto — comprobar la caja',
   bizum: 'Bizum ONG — pendiente de confirmar',
   transferencia: `Transferencia — hay que escribirle en menos de ${HORAS_RESPUESTA_TRANSFERENCIA} h con el importe final`,
 } as const
@@ -151,6 +156,7 @@ const TRANSPORTE = {
     'Te llegará cuando alguien de la Familia Consolación vaya para allá. Sin coste de envío.',
   mensajeria:
     'Te lo enviamos por agencia. El coste depende del destino y del peso, así que te lo confirmamos por correo antes de enviar nada.',
+  'en-mano': 'Te lo damos en mano en el puesto.',
 } as const
 
 const VERDE = '#13684b'
@@ -182,7 +188,7 @@ function codigoBizum(): string {
 function bloquePago(datos: DatosCorreo): string {
   const titulo = (texto: string) =>
     `<h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">${texto}</h2>`
-  const concepto = escapar(datos.cliente.nombre || datos.cliente.email)
+  const concepto = escapar(datos.cliente.nombre || datos.cliente.email || '')
 
   if (datos.formaDePago === 'tarjeta') {
     return `
@@ -191,6 +197,18 @@ function bloquePago(datos: DatosCorreo): string {
         <strong>Ya está pagado con tarjeta.</strong> No tienes que hacer nada más:
         nos ponemos con tu pedido.
       </p>`
+  }
+
+  if (datos.formaDePago === 'efectivo') {
+    return `
+      ${titulo('El pago')}
+      <p style="margin:0;line-height:1.5;">En <strong>efectivo</strong>, en el puesto.</p>`
+  }
+
+  if (datos.evento && datos.formaDePago === 'bizum') {
+    return `
+      ${titulo('El pago')}
+      <p style="margin:0;line-height:1.5;">Con <strong>Bizum</strong>, en el puesto.</p>`
   }
 
   if (datos.formaDePago === 'bizum') {
@@ -223,6 +241,7 @@ function bloquePago(datos: DatosCorreo): string {
 
 /** Confirmación al cliente, con lo que tiene que hacer según cómo vaya a pagar. */
 export function confirmacionCliente(datos: DatosCorreo): Promise<boolean> {
+  if (!datos.cliente.email) return Promise.resolve(false)
   const pagado = datos.formaDePago === 'tarjeta'
 
   return enviar({
@@ -251,10 +270,14 @@ export function confirmacionCliente(datos: DatosCorreo): Promise<boolean> {
 export function avisoEquipo(datos: DatosCorreo & { idPedido: string }): Promise<boolean> {
   const { correoEquipo } = useRuntimeConfig()
   if (!correoEquipo) return Promise.resolve(false)
+  // Lo vendido en un puesto lo ha visto el equipo con sus ojos: un correo por cada
+  // pañuelo vendido sólo serviría para enterrar los pedidos de verdad. Está en
+  // Holded con el tag del evento.
+  if (datos.evento) return Promise.resolve(false)
 
   return enviar({
     para: correoEquipo,
-    responderA: datos.cliente.email,
+    ...(datos.cliente.email ? { responderA: datos.cliente.email } : {}),
     asunto: `Pedido web de ${datos.cliente.nombre} · ${formatearEuros(datos.totalCentimos)}`,
     html: envoltorio(`
       <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;">Pedido nuevo desde la web</h1>
@@ -262,7 +285,7 @@ export function avisoEquipo(datos: DatosCorreo & { idPedido: string }): Promise<
         <strong>${escapar(datos.cliente.nombre)}</strong>
         (${datos.modo === 'b2b' ? 'delegación' : 'particular'})
       </p>
-      <p style="margin:0 0 16px;color:#6b6a66;font-size:13px;">${escapar(datos.cliente.email)}</p>
+      <p style="margin:0 0 16px;color:#6b6a66;font-size:13px;">${escapar(datos.cliente.email ?? 'sin correo')}</p>
       ${tablaLineas(datos.lineas, datos.totalCentimos)}
       <p style="margin:16px 0 0;line-height:1.5;">
         <strong>Pago:</strong> ${PAGO_EQUIPO[datos.formaDePago]}

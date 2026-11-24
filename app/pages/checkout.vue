@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { lineas, totalCentimos, unidades, vacio, vaciar } = useCarrito()
 const { modo, delegacion, proponer } = useModo()
+const { evento } = useEvento()
 
 const { data: sesion } = await useFetch('/api/sesion')
 
@@ -80,20 +81,29 @@ if (sesion.value?.autenticado && sesion.value.esDelegacion) proponer('b2b')
 const enviando = ref(false)
 const error = ref<string | null>(null)
 const pedidoHecho = ref(false)
+/** El total, guardado antes de vaciar el carrito: en el puesto es lo que hay que cobrar. */
+const importePedido = ref(0)
 
 /**
  * Cómo se paga:
+ *  - En un evento: efectivo por defecto, o Bizum o tarjeta, ahí delante.
  *  - B2C: bizum, transferencia o tarjeta, las tres a la vista.
  *  - B2B: transferencia por delante; bizum y tarjeta viven en "otros métodos".
  */
-const formaDePago = ref<'transferencia' | 'bizum' | 'tarjeta'>(
-  modo.value === 'b2b' ? 'transferencia' : 'bizum',
-)
+type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo'
+function pagoPorDefecto(): FormaDePago {
+  if (evento.value) return 'efectivo'
+  return modo.value === 'b2b' ? 'transferencia' : 'bizum'
+}
+const formaDePago = ref<FormaDePago>(pagoPorDefecto())
 const otrosMetodosAbierto = ref(false)
-watch(modo, (m) => {
-  formaDePago.value = m === 'b2b' ? 'transferencia' : 'bizum'
+watch([modo, evento], () => {
+  formaDePago.value = pagoPorDefecto()
   otrosMetodosAbierto.value = false
 })
+
+/** En un puesto no hay envío: se entrega en mano. */
+const transporte = computed(() => (evento.value ? ('en-mano' as const) : formulario.transporte))
 
 // Se genera una vez por carrito: si la petición se corta y se reintenta, Holded
 // no acaba con dos pedidos iguales.
@@ -102,9 +112,10 @@ const claveIdempotencia = ref(crypto.randomUUID())
 function datosComunes() {
   return {
     modo: modo.value,
-    transporte: formulario.transporte,
+    transporte: transporte.value,
+    evento: evento.value?.id,
     fechaLimite:
-      formulario.transporte === 'consolacion' && !sinFechaConcreta.value
+      transporte.value === 'consolacion' && !sinFechaConcreta.value
         ? formulario.fechaLimite || undefined
         : undefined,
     lineas: lineas.value.map((l) => ({
@@ -113,14 +124,19 @@ function datosComunes() {
       cantidad: l.cantidad,
     })),
     cliente: {
-      email: formulario.email,
+      email: formulario.email || undefined,
       nombre: formulario.nombre,
       telefono: formulario.telefono || undefined,
       cif: formulario.cif || undefined,
-      direccion: formulario.direccion || undefined,
-      poblacion: formulario.poblacion || undefined,
-      provincia: formulario.provincia || undefined,
-      codigoPostal: formulario.codigoPostal || undefined,
+      // En el puesto no se pide dirección; si quedó una de otra visita, no se manda.
+      ...(evento.value
+        ? {}
+        : {
+            direccion: formulario.direccion || undefined,
+            poblacion: formulario.poblacion || undefined,
+            provincia: formulario.provincia || undefined,
+            codigoPostal: formulario.codigoPostal || undefined,
+          }),
     },
     personaContacto: formulario.personaContacto || undefined,
     notas: formulario.notas || undefined,
@@ -170,6 +186,7 @@ async function enviar() {
         ...datosComunes(),
       },
     })
+    importePedido.value = totalCentimos.value
     pedidoHecho.value = true
     vaciar()
   } catch (e) {
@@ -188,7 +205,11 @@ useSeoMeta({ title: 'Finalizar pedido' })
     <TicketImpresora v-if="pedidoHecho">
       <IconoExito class="mx-auto" />
       <h1 class="mt-2 text-2xl font-semibold">¡Pedido recibido!</h1>
-      <p class="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+      <p v-if="evento" class="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+        Gracias{{ formulario.nombre ? `, ${formulario.nombre.split(' ')[0]}` : '' }}. Enseña esta
+        pantalla en el puesto y te lo damos.
+      </p>
+      <p v-else class="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         Gracias{{ formulario.nombre ? `, ${formulario.nombre.split(' ')[0]}` : '' }}. Te hemos
         mandado un correo con todo el detalle
         <template v-if="formulario.transporte === 'mensajeria'">
@@ -197,14 +218,29 @@ useSeoMeta({ title: 'Finalizar pedido' })
       </p>
 
       <div class="mx-auto mt-6 max-w-sm text-left">
-        <InstruccionesPago :metodo="formaDePago" :concepto="formulario.nombre || formulario.email" />
+        <InstruccionesPago
+          :metodo="formaDePago"
+          :concepto="formulario.nombre || formulario.email"
+          :importe="evento ? importePedido : undefined"
+          :en-puesto="!!evento"
+        />
       </div>
 
-      <div class="mx-auto mt-4 max-w-sm text-left">
+      <!-- En el puesto, lo siguiente es atender a la siguiente persona de la cola -->
+      <div v-if="evento" class="mt-6">
+        <NuxtLink
+          to="/"
+          class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
+        >
+          Hacer otro pedido
+        </NuxtLink>
+      </div>
+
+      <div v-if="!evento" class="mx-auto mt-4 max-w-sm text-left">
         <ContactoAyuda variante="destacada" />
       </div>
 
-      <div class="mt-6 flex flex-wrap justify-center gap-2">
+      <div v-if="!evento" class="mt-6 flex flex-wrap justify-center gap-2">
         <NuxtLink
           to="/mis-pedidos"
           class="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
@@ -238,7 +274,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
 
       <!-- Login opcional: se invita, no se obliga -->
       <div
-        v-if="!sesion?.autenticado"
+        v-if="!sesion?.autenticado && !evento"
         class="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
       >
         <p class="flex-1 text-sm text-muted-foreground">
@@ -256,12 +292,15 @@ useSeoMeta({ title: 'Finalizar pedido' })
         <h2 class="font-medium">Tus datos</h2>
 
         <div class="grid gap-3 sm:grid-cols-2">
-          <label class="block">
-            <span class="mb-1 block text-xs text-muted-foreground">Correo electrónico</span>
+          <!-- En el puesto lo que importa es el nombre; el correo opcional va detrás -->
+          <label class="block" :class="{ 'order-2': evento }">
+            <span class="mb-1 block text-xs text-muted-foreground">
+              {{ evento ? 'Correo (opcional, para mandarte el justificante)' : 'Correo electrónico' }}
+            </span>
             <input
               v-model="formulario.email"
               type="email"
-              required
+              :required="!evento"
               class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </label>
@@ -292,7 +331,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
             />
           </label>
 
-          <label class="block">
+          <label v-if="!evento" class="block">
             <span class="mb-1 block text-xs text-muted-foreground">Teléfono</span>
             <input
               v-model="formulario.telefono"
@@ -301,6 +340,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
             />
           </label>
 
+          <template v-if="!evento">
           <label v-if="hayDireccionMcmLocal" class="flex items-center gap-2 sm:col-span-2">
             <input v-model="usarDireccionMcmLocal" type="checkbox" />
             <span class="text-sm text-muted-foreground">A la dirección de mi MCM Local</span>
@@ -336,10 +376,18 @@ useSeoMeta({ title: 'Finalizar pedido' })
               class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
             />
           </label>
+          </template>
         </div>
       </section>
 
-      <section class="space-y-3 rounded-xl border border-border bg-card p-4">
+      <section v-if="evento" class="rounded-xl border border-border bg-card p-4">
+        <h2 class="font-medium">Te lo llevas ahora</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Sin envío: te lo damos en mano en el puesto en cuanto confirmes.
+        </p>
+      </section>
+
+      <section v-if="!evento" class="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 class="font-medium">Cómo te lo hacemos llegar</h2>
 
         <div
@@ -404,8 +452,51 @@ useSeoMeta({ title: 'Finalizar pedido' })
       <section class="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 class="font-medium">Pago</h2>
 
+        <!-- Evento: se paga ahí mismo, delante del equipo -->
+        <div v-if="evento" class="space-y-2.5">
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
+            :class="formaDePago === 'efectivo' ? 'border-primary bg-primary/5' : 'border-border'"
+          >
+            <input v-model="formaDePago" type="radio" value="efectivo" />
+            <IconoEfectivo class="size-9 shrink-0" />
+            <span>
+              <span class="block text-sm font-medium">Efectivo</span>
+              <span class="block text-xs text-muted-foreground">Lo pagas en el puesto.</span>
+            </span>
+          </label>
+
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
+            :class="formaDePago === 'bizum' ? 'border-primary bg-primary/5' : 'border-border'"
+          >
+            <input v-model="formaDePago" type="radio" value="bizum" />
+            <IconoBizum class="size-9 shrink-0" />
+            <span>
+              <span class="block text-sm font-medium">Bizum</span>
+              <span class="block text-xs text-muted-foreground">
+                Te damos el código al confirmar y lo haces ahí mismo.
+              </span>
+            </span>
+          </label>
+
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
+            :class="formaDePago === 'tarjeta' ? 'border-primary bg-primary/5' : 'border-border'"
+          >
+            <input v-model="formaDePago" type="radio" value="tarjeta" />
+            <IconoTarjeta class="size-9 shrink-0" />
+            <span>
+              <span class="block text-sm font-medium">Tarjeta</span>
+              <span class="block text-xs text-muted-foreground">
+                Desde el móvil, con Redsys. Queda pagado al momento.
+              </span>
+            </span>
+          </label>
+        </div>
+
         <!-- B2C: los tres métodos a la vista, tarjeta un poco destacada -->
-        <div v-if="modo === 'b2c'" class="space-y-2.5">
+        <div v-else-if="modo === 'b2c'" class="space-y-2.5">
           <label
             class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
             :class="formaDePago === 'bizum' ? 'border-primary bg-primary/5' : 'border-border'"
