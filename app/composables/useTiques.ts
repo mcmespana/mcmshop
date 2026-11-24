@@ -17,7 +17,8 @@ export interface LineaTique {
   precioCentimos: number
 }
 
-export type PagoTique = 'efectivo' | 'bizum' | 'tarjeta'
+/** `tarjeta` es online por Redsys; `datafono`, la tarjeta pasada en el puesto. */
+export type PagoTique = 'efectivo' | 'bizum' | 'tarjeta' | 'datafono'
 
 export interface Tique {
   /** Número corto del pedido; null mientras el banco no confirma un pago con tarjeta. */

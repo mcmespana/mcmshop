@@ -137,8 +137,9 @@ const hoy = hoyEnEspana()
 const ventasHoy = computed(() => v.ventas.value.filter((x) => hoyEnEspana(new Date(x.hora)) === hoy))
 
 const resumen = computed(() => {
-  const r = { efectivo: 0, bizum: 0, tarjeta: 0, pendiente: 0, total: 0, reservadas: 0 }
+  const r = { efectivo: 0, bizum: 0, datafono: 0, pendiente: 0, total: 0, reservadas: 0 }
   for (const x of ventasHoy.value) {
+    if (!(x.pago in r)) continue
     r[x.pago] += x.totalCentimos
     r.total += x.totalCentimos
     if (x.entrega === 'reservado') r.reservadas++
@@ -146,7 +147,7 @@ const resumen = computed(() => {
   return r
 })
 
-const TEXTO_PAGO = { efectivo: 'Efectivo', bizum: 'Bizum', tarjeta: 'Tarjeta', pendiente: 'Sin cobrar' }
+const TEXTO_PAGO = { efectivo: 'Efectivo', bizum: 'Bizum', datafono: 'Tarjeta', pendiente: 'Sin cobrar' }
 
 function horaCorta(iso: string) {
   return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
@@ -376,7 +377,7 @@ function stockTexto(p: ProductoCatalogo): string {
 
       <HojaInferior v-model="hojaVentas" titulo="Ventas de hoy en este dispositivo" ancho="ancho">
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div v-for="m in (['efectivo', 'bizum', 'tarjeta', 'pendiente'] as const)" :key="m" class="rounded-lg border border-border bg-background p-3">
+          <div v-for="m in (['efectivo', 'bizum', 'datafono', 'pendiente'] as const)" :key="m" class="rounded-lg border border-border bg-background p-3">
             <p class="text-xs text-muted-foreground">{{ TEXTO_PAGO[m] }}</p>
             <p class="mt-0.5 text-lg font-semibold tabular-nums" :class="{ 'text-warn': m === 'pendiente' && resumen.pendiente > 0 }">
               {{ formatearImporte(resumen[m]) }}

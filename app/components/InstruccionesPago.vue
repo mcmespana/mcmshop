@@ -9,7 +9,7 @@
  *    que lo que se promete es que escribimos nosotros, no que pague ya.
  */
 defineProps<{
-  metodo: 'bizum' | 'transferencia' | 'tarjeta' | 'efectivo'
+  metodo: 'bizum' | 'transferencia' | 'tarjeta' | 'efectivo' | 'datafono'
   /** Nombre de quien paga, para sugerir un concepto reconocible. Con tarjeta no hay nada que poner. */
   concepto?: string
   /** En un puesto: el importe, en grande, que es lo que el equipo tiene que cobrar. */
@@ -46,7 +46,15 @@ onBeforeUnmount(() => clearTimeout(temporizador))
     </p>
 
     <!-- Efectivo, en el puesto: no hay nada que explicar más allá del importe -->
-    <div v-if="metodo === 'efectivo'" class="flex items-center gap-3">
+    <div v-if="metodo === 'datafono'" class="flex items-center gap-3">
+      <IconoTarjeta class="size-10 shrink-0" />
+      <div class="min-w-0">
+        <p class="font-medium">Pago con tarjeta en el puesto</p>
+        <p class="text-sm text-muted-foreground">Pásala por el datáfono y te damos tu pedido.</p>
+      </div>
+    </div>
+
+    <div v-else-if="metodo === 'efectivo'" class="flex items-center gap-3">
       <IconoEfectivo class="size-10 shrink-0" />
       <div class="min-w-0">
         <p class="font-medium">Pago en efectivo</p>

@@ -93,7 +93,7 @@ const importePedido = ref(0)
  *  - B2C: bizum, transferencia o tarjeta, las tres a la vista.
  *  - B2B: transferencia por delante; bizum y tarjeta viven en "otros métodos".
  */
-type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo'
+type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | 'datafono'
 function pagoPorDefecto(): FormaDePago {
   if (evento.value) return 'efectivo'
   return modo.value === 'b2b' ? 'transferencia' : 'bizum'
@@ -557,7 +557,27 @@ useSeoMeta({ title: 'Finalizar pedido' })
             </span>
           </label>
 
+          <!--
+            Con datáfono en el puesto, la tarjeta se pasa allí: es más rápido que
+            ir al banco desde el móvil con la cola delante. Sin datáfono, pago
+            online con Redsys, que deja el pedido cobrado antes de llegar.
+          -->
           <label
+            v-if="evento.datafono"
+            class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
+            :class="formaDePago === 'datafono' ? 'border-primary bg-primary/5' : 'border-border'"
+          >
+            <input v-model="formaDePago" type="radio" value="datafono" />
+            <IconoTarjeta class="size-9 shrink-0" />
+            <span>
+              <span class="block text-sm font-medium">Tarjeta</span>
+              <span class="block text-xs text-muted-foreground">
+                La pasas por el datáfono en el puesto.
+              </span>
+            </span>
+          </label>
+          <label
+            v-else
             class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
             :class="formaDePago === 'tarjeta' ? 'border-primary bg-primary/5' : 'border-border'"
           >

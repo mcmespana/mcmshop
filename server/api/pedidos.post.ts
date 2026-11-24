@@ -14,7 +14,7 @@ const esquemaBase = z.object({
    * comparte este esquema pero nunca llega a crear el pedido con él — lo crea
    * la notificación de Redsys, una vez que el banco confirma el cobro.
    */
-  formaDePago: z.enum(['transferencia', 'bizum', 'efectivo']).optional(),
+  formaDePago: z.enum(['transferencia', 'bizum', 'efectivo', 'datafono']).optional(),
   transporte: z.enum(['consolacion', 'mensajeria', 'en-mano']),
   /** Id del evento presencial, si el pedido se hace en un puesto. */
   evento: z.string().max(60).optional(),
@@ -63,10 +63,18 @@ export const esquemaPedido = esquemaBase.superRefine((datos, ctx) => {
     if (datos.transporte !== 'en-mano') {
       ctx.addIssue({ code: 'custom', message: 'en-mano', path: ['transporte'] })
     }
+    // El datáfono sólo existe en los eventos que lo llevan.
+    if (datos.formaDePago === 'datafono' && !evento.datafono) {
+      ctx.addIssue({ code: 'custom', message: 'sin-datafono', path: ['formaDePago'] })
+    }
     return
   }
   if (!datos.cliente.email) ctx.addIssue({ code: 'custom', message: 'email', path: ['cliente'] })
-  if (datos.formaDePago === 'efectivo' || datos.transporte === 'en-mano') {
+  if (
+    datos.formaDePago === 'efectivo' ||
+    datos.formaDePago === 'datafono' ||
+    datos.transporte === 'en-mano'
+  ) {
     ctx.addIssue({ code: 'custom', message: 'solo-evento', path: ['formaDePago'] })
   }
 })

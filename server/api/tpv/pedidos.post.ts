@@ -41,7 +41,8 @@ const esquema = z.object({
       .regex(/^[a-f0-9]{24}$/)
       .optional(),
   }),
-  pago: z.enum(['efectivo', 'bizum', 'tarjeta', 'transferencia', 'pendiente']),
+  /** En el TPV la tarjeta siempre es el datáfono físico: el pago online va por la web. */
+  pago: z.enum(['efectivo', 'bizum', 'datafono', 'transferencia', 'pendiente']),
   entrega: z.enum(['entregado', 'reservado']),
   notas: z.string().max(1000).optional(),
 })
@@ -49,7 +50,7 @@ const esquema = z.object({
 const TEXTO_PAGO = {
   efectivo: 'efectivo — COBRADO en mano',
   bizum: 'Bizum — COBRADO (comprobar que ha llegado)',
-  tarjeta: 'tarjeta — COBRADO en datáfono',
+  datafono: 'tarjeta — COBRADO en el datáfono',
   transferencia: 'transferencia — SIN COBRAR, hay que pasarle los datos',
   pendiente: 'SIN COBRAR — pagará más tarde',
 } as const
@@ -106,7 +107,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const numero = await siguienteNumero(evento?.id ?? 'tpv')
-  const cobrado = ['efectivo', 'bizum', 'tarjeta'].includes(datos.pago)
+  const cobrado = ['efectivo', 'bizum', 'datafono'].includes(datos.pago)
 
   const notas = [
     evento

@@ -139,6 +139,10 @@ const nombreEnPartes = computed(() => {
             <p class="font-semibold">Paga en efectivo</p>
             <p class="text-muted-foreground">En el puesto, al recogerlo.</p>
           </template>
+          <template v-else-if="tique.pago === 'datafono'">
+            <p class="font-semibold">Paga con tarjeta</p>
+            <p class="text-muted-foreground">En el puesto, con el datáfono.</p>
+          </template>
           <template v-else-if="tique.pago === 'bizum'">
             <p class="font-semibold">Paga con Bizum</p>
             <p class="text-muted-foreground">

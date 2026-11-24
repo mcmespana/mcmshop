@@ -23,7 +23,7 @@ export interface LineaTpv {
   stock: number
 }
 
-export type PagoTpv = 'efectivo' | 'bizum' | 'tarjeta' | 'pendiente'
+export type PagoTpv = 'efectivo' | 'bizum' | 'datafono' | 'pendiente'
 export type EntregaTpv = 'entregado' | 'reservado'
 
 /** Lo que queda en este dispositivo de cada venta, para cuadrar la caja al final. */

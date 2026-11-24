@@ -284,14 +284,17 @@ Hay dos formas de vender en un evento, y se pueden usar a la vez:
 ### a) Cada persona pide desde su móvil
 
 1. **Dar de alta el evento** en `shared/utils/eventos.ts`: id, nombre, lugar, fechas
-   (`desde`/`hasta`, incluidas) y, si se quiere que se vea antes, `publicarDesde`. Se
+   (`desde`/`hasta`, incluidas), si se quiere que se vea antes `publicarDesde`, y
+   `datafono: true` si en el puesto hay datáfono físico. Se
    puede editar desde GitHub en el navegador; al guardar en `main` se publica solo.
    Pasado `hasta` se apaga solo.
 2. Mientras está publicado, sale **destacado arriba del todo en la bienvenida**
    ("Estoy en el Congreso de Monitores"), y a quien ya conocía la tienda se le ofrece
    en una franja del catálogo. También vale un QR a `/evento/<id>`.
 3. La persona elige, pone **nombre y localidad** (un solo campo, sin correo; si entra
-   con Google se guarda también en su cuenta) y elige efectivo, Bizum o tarjeta.
+   con Google se guarda también en su cuenta) y elige efectivo, Bizum o tarjeta. Con
+   `datafono: true`, "tarjeta" es pasarla por el datáfono en el puesto; sin él, pago
+   online por Redsys desde el móvil.
 4. Le sale un **tique con número** (Nº 023) que enseña en el puesto: qué lleva,
    cuánto y cómo paga, con un sello de **PAGADO** o **A COBRAR** y una franja "en vivo"
    con la hora corriendo, para distinguirlo de una captura. Queda guardado en su
@@ -322,7 +325,7 @@ quita los guiones):
 | `tiendaweb` / `tpv` | De dónde viene |
 | `evento` + `evento<id>` | Vendido en un evento |
 | `canaltelefono` / `canalotro` | TPV sin evento |
-| `pagoefectivo`, `pagobizum`, `pagotarjeta`, `pagopendiente` | Cómo paga |
+| `pagoefectivo`, `pagobizum`, `pagodatafono`, `pagotarjeta`, `pagopendiente` | Cómo paga (`pagotarjeta` es online por Redsys; `pagodatafono`, la tarjeta en el puesto) |
 | `cobrado` / `sincobrar` | Si ya está cobrado (tarjeta web, o lo marca el TPV) |
 | `entregado` / `reservado` | Sólo TPV: si se lo ha llevado |
 

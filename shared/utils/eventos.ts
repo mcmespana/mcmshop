@@ -14,6 +14,7 @@
  *     desde: '2027-03-25',          // primer día del evento (incluido)
  *     hasta: '2027-03-30',          // último día (incluido)
  *     publicarDesde: '2027-03-20',  // opcional: desde cuándo se ve en la tienda
+ *     datafono: true,               // opcional: hay datáfono físico en el puesto
  *   },
  *
  * Mientras está publicado (de `publicarDesde`, o `desde` si no se pone, hasta
@@ -40,6 +41,12 @@ export interface Evento {
    * probarlo, o para que la gente pida antes y lo recoja allí.
    */
   publicarDesde?: string
+  /**
+   * Si en el puesto hay datáfono físico. Entonces, en el móvil de cada persona,
+   * "Tarjeta" significa pagar en el puesto con el datáfono y no online por
+   * Redsys: con la cola delante es más rápido pasar la tarjeta que ir al banco.
+   */
+  datafono?: boolean
 }
 
 export const EVENTOS: Evento[] = [
@@ -50,6 +57,7 @@ export const EVENTOS: Evento[] = [
     desde: '2026-11-27',
     hasta: '2026-11-29',
     publicarDesde: '2026-11-24',
+    datafono: true,
   },
 ]
 

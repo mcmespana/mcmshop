@@ -27,14 +27,15 @@ export interface LineaSolicitada {
 }
 
 /** Cómo se paga. `efectivo` sólo existe en un evento presencial. */
-export type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo'
+export type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | 'datafono'
 
 /**
  * Etiquetas comunes de Holded, para poder filtrar igual vengan de donde vengan:
  *
  *   origen   tienda-web · tpv
  *   evento   evento + evento-<id>
- *   pago     pago-efectivo · pago-bizum · pago-tarjeta · pago-transferencia · pago-pendiente
+ *   pago     pago-efectivo · pago-bizum · pago-tarjeta (online, Redsys) ·
+ *            pago-datafono (tarjeta en el puesto) · pago-transferencia · pago-pendiente
  *   cobro    cobrado · sin-cobrar   (sólo cuando se sabe: tarjeta, o lo marca el TPV)
  *   entrega  entregado · reservado  (sólo el TPV, que es quien lo sabe)
  *
@@ -242,6 +243,7 @@ export async function crearPedidoCompleto(
     transferencia: 'transferencia — pendiente de confirmar',
     bizum: evento ? 'Bizum ONG en el puesto — comprobar' : 'Bizum ONG — pendiente de confirmar',
     efectivo: 'efectivo en el puesto — comprobar la caja',
+    datafono: 'tarjeta con el datáfono del puesto — comprobar el cobro',
     tarjeta: `tarjeta — COBRADO${solicitud.referenciaPago ? ` (ref. ${solicitud.referenciaPago})` : ''}`,
   }[formaDePago]
 

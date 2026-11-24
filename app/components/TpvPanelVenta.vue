@@ -26,7 +26,7 @@ watch(masDatos, (abierto) => {
 const PAGOS: Array<{ id: PagoTpv; texto: string; pista: string }> = [
   { id: 'efectivo', texto: 'Efectivo', pista: 'Cobrado' },
   { id: 'bizum', texto: 'Bizum', pista: 'Cobrado' },
-  { id: 'tarjeta', texto: 'Tarjeta', pista: 'Datáfono' },
+  { id: 'datafono', texto: 'Tarjeta', pista: 'Datáfono' },
   { id: 'pendiente', texto: 'Paga luego', pista: 'Sin cobrar' },
 ]
 
