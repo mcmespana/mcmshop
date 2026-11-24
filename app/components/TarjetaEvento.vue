@@ -17,7 +17,7 @@ import type { Evento } from '~~/shared/utils/eventos'
  *  - el punto de "En marcha" late sólo mientras el evento está pasando de
  *    verdad: es la única animación en bucle, y dice algo que es cierto ahora.
  */
-const props = defineProps<{ evento: Evento; retraso?: number }>()
+const props = defineProps<{ evento: Evento; retraso?: number; cargando?: boolean }>()
 defineEmits<{ elegir: [] }>()
 
 const enCurso = computed(() => eventoEnCurso(props.evento))
@@ -35,6 +35,7 @@ const matriz = computed(() => {
     type="button"
     class="mcm-animar-entrada mcm-evento group relative flex w-full overflow-hidden rounded-xl text-left"
     :style="{ animationDelay: `${retraso ?? 0}ms` }"
+    :aria-busy="cargando"
     :aria-label="`Estoy en el ${evento.nombre}${evento.lugar ? `, ${evento.lugar}` : ''}, ${fechas}. Pedir para recoger en el puesto.`"
     @click="$emit('elegir')"
   >
@@ -65,8 +66,13 @@ const matriz = computed(() => {
       </span>
 
       <span class="mt-4 flex items-center gap-1.5 text-sm font-medium text-primary">
-        Pide aquí y recógelo en el puesto
-        <svg viewBox="0 0 24 24" class="size-4 transition-transform duration-200 group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        {{ cargando ? 'Entrando…' : 'Pide aquí y recógelo en el puesto' }}
+        <span
+          v-if="cargando"
+          class="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent"
+          aria-hidden="true"
+        />
+        <svg v-else viewBox="0 0 24 24" class="size-4 transition-transform duration-200 group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
         </svg>
       </span>

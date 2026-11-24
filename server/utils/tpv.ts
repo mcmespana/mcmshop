@@ -7,9 +7,20 @@
  * dispositivo, con una cookie firmada que el navegador no puede leer.
  *
  * Desde aquí se crean pedidos que dicen "cobrado" o "entregado" sin que nadie
- * lo compruebe, así que esto NO puede quedar abierto: sin clave configurada, el
+ * lo compruebe, así que por defecto NO queda abierto: sin clave configurada, el
  * TPV está cerrado para todo el mundo.
+ *
+ * Excepción deliberada y temporal: `NUXT_TPV_LIBRE=true` lo abre sin clave,
+ * para los primeros eventos mientras el equipo se acostumbra. Cerrarlo es
+ * quitar esa variable en Vercel y redesplegar; la clave sigue puesta.
  */
+
+/** TPV abierto a cualquiera, sin clave. Decisión del equipo, ver arriba. */
+export function tpvLibre(): boolean {
+  // Nuxt convierte "true" de la variable de entorno en booleano, pero por si
+  // llega como texto (pegado a mano con espacios, por ejemplo) se acepta igual.
+  return String(useRuntimeConfig().tpvLibre).trim() === 'true'
+}
 
 import { SignJWT, jwtVerify } from 'jose'
 import { timingSafeEqual } from 'node:crypto'
@@ -28,6 +39,7 @@ function claveFirma(): Uint8Array {
 }
 
 export function tpvConfigurado(): boolean {
+  if (tpvLibre()) return true
   return String(useRuntimeConfig().tpvClave ?? '').trim().length >= 4
 }
 
@@ -60,6 +72,7 @@ export function cerrarTpv(event: H3Event): void {
 }
 
 export async function tpvAbierto(event: H3Event): Promise<boolean> {
+  if (tpvLibre()) return true
   if (!tpvConfigurado()) return false
   const token = getCookie(event, COOKIE)
   if (!token) return false

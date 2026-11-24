@@ -116,6 +116,15 @@ function elegirVariante(variante: VarianteCatalogo) {
 
 const hojaTicket = ref(false)
 
+// ── QR para que la gente pida desde su móvil ───────────────────────────────
+const hojaQr = ref(false)
+/** El origen de la página, no el del config: así el QR de una vista previa lleva a la vista previa. */
+const origen = useRequestURL().origin
+const eventoElegido = computed(() => eventos.find((e) => e.id === v.eventoId.value) ?? null)
+const urlQr = computed(() =>
+  eventoElegido.value ? `${origen}/evento/${eventoElegido.value.id}` : `${origen}/`,
+)
+
 /**
  * Alto real de la cabecera, para que el ticket fijo de la derecha empiece justo
  * debajo: cambia cuando aparece la fila de "Entra por" (venta sin evento).
@@ -233,7 +242,19 @@ function stockTexto(p: ProductoCatalogo): string {
 
           <button
             type="button"
-            class="ml-auto flex shrink-0 items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm transition hover:border-muted-foreground"
+            class="ml-auto flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-sm font-medium transition hover:border-muted-foreground"
+            aria-label="Enseñar el QR para pedir desde el móvil"
+            @click="hojaQr = true"
+          >
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" /><path d="M12 16v.01" /><path d="M16 12h1" /><path d="M21 12v.01" /><path d="M12 21v-1" />
+            </svg>
+            QR
+          </button>
+
+          <button
+            type="button"
+            class="flex shrink-0 items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm transition hover:border-muted-foreground"
             @click="hojaVentas = true"
           >
             <span class="font-semibold tabular-nums">{{ ventasHoy.length }}</span>
@@ -367,6 +388,14 @@ function stockTexto(p: ProductoCatalogo): string {
         </button>
       </div>
 
+      <HojaInferior v-model="hojaQr" titulo="QR para pedir desde el móvil">
+        <CartelQr
+          :url="urlQr"
+          :titulo="eventoElegido?.nombre ?? 'Tienda MCM'"
+          :subtitulo="eventoElegido?.lugar ?? (eventoElegido ? null : 'Sin evento: abre la tienda normal')"
+        />
+      </HojaInferior>
+
       <HojaInferior v-model="hojaTicket" titulo="Venta">
         <TpvPanelVenta @registrada="hojaTicket = false" />
       </HojaInferior>
@@ -413,7 +442,7 @@ function stockTexto(p: ProductoCatalogo): string {
           Todavía no has apuntado ninguna venta hoy desde este dispositivo.
         </p>
 
-        <template #pie>
+        <template v-if="!sesion?.libre" #pie>
           <button type="button" class="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline" @click="salirDelTpv">
             Salir del TPV en este dispositivo
           </button>

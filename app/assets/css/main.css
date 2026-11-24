@@ -170,6 +170,50 @@ body {
   }
 }
 
+/*
+  Mano al pasar por encima de todo lo que se puede pulsar.
+
+  Tailwind 4 cambió su preflight y los botones salen con `cursor: default`,
+  como en el sistema operativo. En una web eso se lee como "esto no hace
+  nada": la tienda entera parecía muerta al pasar el ratón. Se devuelve aquí,
+  una vez, en vez de ir poniendo `cursor-pointer` botón por botón.
+*/
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='radio'],
+  a[href],
+  summary,
+  select:not(:disabled),
+  label:has(> input:not(:disabled)),
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
+  /* Mientras algo carga, el cursor lo dice también (design.md §3.5). */
+  [aria-busy='true'] {
+    cursor: progress;
+  }
+}
+
+/*
+  Respuesta al pulsar, en táctil sobre todo: sin hover, lo único que dice
+  "te he oído" es que lo que tocas cambie en ese mismo instante. Se atenúa
+  mientras el dedo está encima; es feedback de la acción (§3.4), no adorno.
+*/
+button:not(:disabled):active,
+a[href]:active,
+label:has(> input:not(:disabled)):active {
+  opacity: 0.82;
+}
+
 /* Los controles nativos salen en azul de sistema si no se les dice otra cosa. */
 input[type='radio'],
 input[type='checkbox'] {

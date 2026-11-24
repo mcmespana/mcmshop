@@ -77,6 +77,8 @@ export default defineNuxtConfig({
      * desde ahí se apuntan ventas como cobradas sin que nadie lo compruebe.
      */
     tpvClave: '',
+    /** `true` abre el TPV sin clave. Temporal: se cierra quitando NUXT_TPV_LIBRE. */
+    tpvLibre: false,
     public: {
       siteUrl: 'http://localhost:3000',
     },

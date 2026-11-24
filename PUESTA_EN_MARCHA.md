@@ -304,9 +304,14 @@ Hay dos formas de vender en un evento, y se pueden usar a la vez:
 
 Para la caja del puesto, o para un pedido que entra por teléfono:
 
-- **Clave:** `NUXT_TPV_CLAVE` en Vercel. Sin ella el TPV está cerrado para todos.
-  Cada dispositivo la mete una vez y queda dentro 30 días ("Salir del TPV" en el
-  resumen de ventas para un móvil prestado).
+- **Acceso, ahora mismo abierto sin clave** (`NUXT_TPV_LIBRE=true` en Vercel), por
+  decisión del equipo para los primeros eventos. **Para cerrarlo:** borra
+  `NUXT_TPV_LIBRE` en Vercel y redespliega; entonces pide la clave de
+  `NUXT_TPV_CLAVE`, que sigue puesta. Cada dispositivo la mete una vez y queda dentro
+  30 días ("Salir del TPV" en el resumen de ventas para un móvil prestado).
+- **QR para pedir desde el móvil:** botón "QR" arriba. Enseña el QR del evento elegido
+  en pantalla, lo copia como enlace o abre un **cartel A4 listo para imprimir**.
+  Lleva a `/evento/<id>`, que deja ese móvil comprando en el evento.
 - Arriba se elige el **evento** o "Sin evento" (y entonces si entra por teléfono u otro).
 - Tocar producto → talla/color → (nombre) → **Registrar venta**. Pago: efectivo,
   Bizum, tarjeta (datáfono) o "paga luego". Entrega: se lo lleva o reservado. Si se
@@ -331,7 +336,9 @@ quita los guiones):
 
 Las ventas sin correo crean un contacto nuevo con el nombre que se dé.
 
-**Los números son correlativos por evento sólo con Redis** (punto 5.3). Sin Redis
+**Los números son correlativos por evento** (001, 002, 003…), compartidos entre la
+web y el TPV, gracias a Redis (punto 5.3). Para comprobar que Redis está conectado:
+abre `/api/salud` y mira `almacenCompartido: true`. Sin Redis
 cada instancia de Vercel llevaría su propia cuenta y se repetirían, así que se usa un
 código de cuatro letras (`K7F2`): funciona, pero es menos cómodo de cantar en la cola.
 
