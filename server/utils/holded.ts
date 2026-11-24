@@ -181,7 +181,8 @@ export async function buscarContactoPorEmail(email: string): Promise<ContactoHol
 
 export interface NuevoContacto {
   name: string
-  email: string
+  /** Opcional: en un puesto presencial se vende sin pedir correo. */
+  email?: string
   code?: string | null
   is_person?: boolean
   type?: 'client'

@@ -1,4 +1,5 @@
-import { esquemaPedido } from '../pedidos.post'
+import { errorDeValidacion, esquemaPedido } from '../pedidos.post'
+import { eventoActivo } from '../../../shared/utils/eventos'
 import { limitarPeticiones } from '../../utils/limite'
 import { prepararLineas } from '../../utils/pedido'
 import { numeroPedidoRedsys, prepararPago } from '../../utils/redsys'
@@ -16,13 +17,17 @@ import { leerSesion } from '../../utils/sesion'
  * Cobrar sin dejar rastro es lo único inaceptable.
  */
 export default defineEventHandler(async (event) => {
-  await limitarPeticiones(event, { clave: 'pago', maximo: 8, ventanaSegundos: 300 })
-
   const validacion = esquemaPedido.safeParse(await readBody(event))
-  if (!validacion.success) {
-    throw createError({ statusCode: 400, statusMessage: 'Faltan datos del pedido.' })
-  }
+  if (!validacion.success) errorDeValidacion(validacion.error)
   const datos = validacion.data
+
+  // En un evento muchos pagos salen de la misma wifi: ver pedidos.post.ts.
+  await limitarPeticiones(
+    event,
+    eventoActivo(datos.evento)
+      ? { clave: 'pago-evento', maximo: 60, ventanaSegundos: 300 }
+      : { clave: 'pago', maximo: 8, ventanaSegundos: 300 },
+  )
 
   // El importe se calcula en el servidor releyendo el catálogo. Es lo único que
   // impide que alguien pague 1 céntimo por una sudadera editando la petición.
@@ -43,7 +48,8 @@ export default defineEventHandler(async (event) => {
   await useStorage('pagos').setItem(numeroPedido, {
     solicitud: {
       ...datos,
-      contactoConocido: sesion?.email === datos.cliente.email ? sesion.contactoId : null,
+      contactoConocido:
+        datos.cliente.email && sesion?.email === datos.cliente.email ? sesion.contactoId : null,
     },
     totalCentimos,
     creadoEn: new Date().toISOString(),

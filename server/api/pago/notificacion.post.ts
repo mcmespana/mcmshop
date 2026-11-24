@@ -1,6 +1,7 @@
 import { avisoEquipo, confirmacionCliente } from '../../utils/correo'
 import { crearPedidoCompleto, type SolicitudPedido } from '../../utils/pedido'
 import { verificarNotificacion } from '../../utils/redsys'
+import { EVENTOS } from '../../../shared/utils/eventos'
 
 interface PagoGuardado {
   solicitud: SolicitudPedido
@@ -80,6 +81,9 @@ export default defineEventHandler(async (event) => {
     formaDePago: 'tarjeta' as const,
     transporte: guardado.solicitud.transporte,
     notas: guardado.solicitud.notas,
+    // Se mira la existencia y no si sigue activo: un pago de las 23:59 del último
+    // día puede notificarse ya pasada la medianoche.
+    evento: EVENTOS.find((e) => e.id === guardado.solicitud.evento)?.nombre,
   }
   event.waitUntil(
     Promise.allSettled([

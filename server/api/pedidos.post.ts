@@ -3,8 +3,9 @@ import { avisoEquipo, confirmacionCliente } from '../utils/correo'
 import { limitarPeticiones } from '../utils/limite'
 import { crearPedidoCompleto } from '../utils/pedido'
 import { leerSesion } from '../utils/sesion'
+import { eventoActivo } from '../../shared/utils/eventos'
 
-export const esquemaPedido = z.object({
+const esquemaBase = z.object({
   /** Identificador que genera el navegador para que un reintento no duplique el pedido. */
   claveIdempotencia: z.string().min(8).max(100),
   modo: z.enum(['b2b', 'b2c']),
@@ -13,8 +14,10 @@ export const esquemaPedido = z.object({
    * comparte este esquema pero nunca llega a crear el pedido con él — lo crea
    * la notificación de Redsys, una vez que el banco confirma el cobro.
    */
-  formaDePago: z.enum(['transferencia', 'bizum']).optional(),
-  transporte: z.enum(['consolacion', 'mensajeria']),
+  formaDePago: z.enum(['transferencia', 'bizum', 'efectivo']).optional(),
+  transporte: z.enum(['consolacion', 'mensajeria', 'en-mano']),
+  /** Id del evento presencial, si el pedido se hace en un puesto. */
+  evento: z.string().max(60).optional(),
   /** Fecha límite deseada, sólo con transporte Consolación. Vacío = sin fecha concreta. */
   fechaLimite: z.string().optional(),
   lineas: z
@@ -28,7 +31,7 @@ export const esquemaPedido = z.object({
     .min(1)
     .max(60),
   cliente: z.object({
-    email: z.email(),
+    email: z.email().optional(),
     nombre: z.string().min(2).max(120),
     telefono: z.string().max(40).optional(),
     cif: z.string().max(20).optional(),
@@ -42,21 +45,65 @@ export const esquemaPedido = z.object({
   notas: z.string().max(1000).optional(),
 })
 
-export default defineEventHandler(async (event) => {
-  // Un pedido cada pocos minutos por IP es de sobra para el volumen real y evita
-  // que el formulario público se convierta en una manguera hacia el ERP.
-  await limitarPeticiones(event, { clave: 'pedidos', maximo: 5, ventanaSegundos: 300 })
+/**
+ * Las reglas del modo evento, en el servidor y no sólo en la pantalla: el
+ * formulario es público y cualquiera puede mandar lo que quiera.
+ *
+ *  - Fuera de un evento activo: correo obligatorio, y ni efectivo ni entrega en
+ *    mano (nadie va a estar en un puesto para cobrarlo ni para darlo).
+ *  - Dentro: correo opcional, y la entrega es siempre en mano.
+ */
+export const esquemaPedido = esquemaBase.superRefine((datos, ctx) => {
+  const evento = eventoActivo(datos.evento)
+  if (datos.evento && !evento) {
+    ctx.addIssue({ code: 'custom', message: 'evento-cerrado', path: ['evento'] })
+    return
+  }
+  if (evento) {
+    if (datos.transporte !== 'en-mano') {
+      ctx.addIssue({ code: 'custom', message: 'en-mano', path: ['transporte'] })
+    }
+    return
+  }
+  if (!datos.cliente.email) ctx.addIssue({ code: 'custom', message: 'email', path: ['cliente'] })
+  if (datos.formaDePago === 'efectivo' || datos.transporte === 'en-mano') {
+    ctx.addIssue({ code: 'custom', message: 'solo-evento', path: ['formaDePago'] })
+  }
+})
 
+/** Mensaje para quien abrió la tienda en modo evento y el evento ya terminó. */
+export const MENSAJE_EVENTO_CERRADO =
+  'El evento ya ha terminado, así que no se puede pagar en el puesto. Recarga la página para pedir online.'
+
+export function errorDeValidacion(error: z.ZodError): never {
+  const cerrado = error.issues.some((i) => i.message === 'evento-cerrado')
+  throw createError({
+    statusCode: 400,
+    statusMessage: cerrado
+      ? MENSAJE_EVENTO_CERRADO
+      : 'Faltan datos del pedido o el carrito está vacío. Revisa el formulario.',
+  })
+}
+
+export default defineEventHandler(async (event) => {
   // Un cuerpo mal formado es culpa de quien llama: 400, no 500. Y sin devolver el
   // detalle de zod, que sólo sirve para exponer nombres de campos internos.
   const validacion = esquemaPedido.safeParse(await readBody(event))
-  if (!validacion.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Faltan datos del pedido o el carrito está vacío. Revisa el formulario.',
-    })
-  }
+  if (!validacion.success) errorDeValidacion(validacion.error)
   const datos = validacion.data
+
+  // Un pedido cada pocos minutos por IP es de sobra para el volumen real y evita
+  // que el formulario público se convierta en una manguera hacia el ERP.
+  //
+  // Menos en un evento: la tablet del puesto, o todos los móviles en la misma
+  // wifi, salen por la misma IP, y con cinco pedidos se quedaría la cola parada.
+  // Sólo vale mientras el evento está en fechas, así que el agujero dura días.
+  await limitarPeticiones(
+    event,
+    eventoActivo(datos.evento)
+      ? { clave: 'pedidos-evento', maximo: 60, ventanaSegundos: 300 }
+      : { clave: 'pedidos', maximo: 5, ventanaSegundos: 300 },
+  )
 
   // Este endpoint sólo crea pedidos ya decididos por transferencia o Bizum: si
   // llega sin forma de pago (o con "tarjeta", que no es una opción válida aquí),
@@ -76,7 +123,8 @@ export default defineEventHandler(async (event) => {
   const { id, totalCentimos, lineasCorreo } = await crearPedidoCompleto(
     {
       ...datos,
-      contactoConocido: sesion?.email === datos.cliente.email ? sesion.contactoId : null,
+      contactoConocido:
+        datos.cliente.email && sesion?.email === datos.cliente.email ? sesion.contactoId : null,
     },
     datos.formaDePago,
   )
@@ -94,6 +142,7 @@ export default defineEventHandler(async (event) => {
     formaDePago: datos.formaDePago,
     transporte: datos.transporte,
     notas: datos.notas,
+    evento: eventoActivo(datos.evento)?.nombre,
   }
   event.waitUntil(
     Promise.allSettled([

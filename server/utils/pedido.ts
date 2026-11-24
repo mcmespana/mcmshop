@@ -17,6 +17,7 @@ import {
   type LineaPedido,
 } from './holded'
 import type { LineaCorreo } from './correo'
+import { EVENTOS } from '../../shared/utils/eventos'
 
 export interface LineaSolicitada {
   productoId: string
@@ -24,8 +25,14 @@ export interface LineaSolicitada {
   cantidad: number
 }
 
+/** Cómo se paga. `efectivo` sólo existe en un evento presencial. */
+export type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo'
+/** Cómo llega. `en-mano` sólo existe en un evento presencial. */
+export type Transporte = 'consolacion' | 'mensajeria' | 'en-mano'
+
 export interface DatosCliente {
-  email: string
+  /** Obligatorio salvo en un evento presencial, donde se pide lo mínimo. */
+  email?: string
   nombre: string
   telefono?: string
   cif?: string
@@ -37,7 +44,7 @@ export interface DatosCliente {
 
 export interface SolicitudPedido {
   modo: 'b2b' | 'b2c'
-  transporte: 'consolacion' | 'mensajeria'
+  transporte: Transporte
   /**
    * Fecha límite deseada de entrega, sólo relevante con transporte Consolación.
    * Formato ISO "AAAA-MM-DD". Ausente o vacío = sin fecha concreta.
@@ -51,6 +58,8 @@ export interface SolicitudPedido {
   referenciaPago?: string
   /** Contacto ya conocido por la sesión, para ahorrarse la búsqueda. */
   contactoConocido?: string | null
+  /** Id del evento presencial en que se ha hecho. Se comprueba que esté activo al recibirlo. */
+  evento?: string
 }
 
 export interface PedidoPreparado {
@@ -62,6 +71,7 @@ export interface PedidoPreparado {
 const TEXTO_TRANSPORTE = {
   consolacion: 'Transporte Consolación (lo lleva alguien de la Familia Consolación)',
   mensajeria: 'Mensajería urgente — pendiente de presupuestar y añadir al pedido',
+  'en-mano': 'Entregado en mano en el puesto del evento',
 } as const
 
 function formatearFecha(iso: string): string {
@@ -159,12 +169,17 @@ export async function resolverContacto(
 ): Promise<string> {
   if (contactoConocido) return contactoConocido
 
-  const existente = await buscarContactoPorEmail(cliente.email)
-  if (existente) return existente.id
+  // Sin correo (venta en un puesto) no hay con qué buscarlo: se crea con el
+  // nombre, que es lo que hay. Duplica si la misma persona vuelve a comprar, y
+  // es el precio de no pedirle datos a nadie en la cola.
+  if (cliente.email) {
+    const existente = await buscarContactoPorEmail(cliente.email)
+    if (existente) return existente.id
+  }
 
   const creado = await crearContacto({
     name: cliente.nombre,
-    email: cliente.email,
+    ...(cliente.email ? { email: cliente.email } : {}),
     type: 'client',
     is_person: modo === 'b2c',
     code: cliente.cif || null,
@@ -182,7 +197,7 @@ export async function resolverContacto(
 /** Crea el pedido completo en Holded y devuelve su id y el total. */
 export async function crearPedidoCompleto(
   solicitud: SolicitudPedido,
-  formaDePago: 'transferencia' | 'bizum' | 'tarjeta',
+  formaDePago: FormaDePago,
 ): Promise<{ id: string; totalCentimos: number; lineasCorreo: LineaCorreo[] }> {
   const { lineas, lineasCorreo, totalCentimos } = await prepararLineas(
     solicitud.lineas,
@@ -195,14 +210,22 @@ export async function crearPedidoCompleto(
     solicitud.contactoConocido,
   )
 
+  // Por id y no por fechas: la validación de entrada ya exigió que estuviera
+  // activo, y un pago con tarjeta de las 23:59 del último día se notifica (y llega
+  // aquí) pasada la medianoche.
+  const evento = EVENTOS.find((e) => e.id === solicitud.evento) ?? null
+
   const textoPago = {
     transferencia: 'transferencia — pendiente de confirmar',
-    bizum: 'Bizum ONG — pendiente de confirmar',
+    bizum: evento ? 'Bizum ONG en el puesto — comprobar' : 'Bizum ONG — pendiente de confirmar',
+    efectivo: 'efectivo en el puesto — comprobar la caja',
     tarjeta: `tarjeta — COBRADO${solicitud.referenciaPago ? ` (ref. ${solicitud.referenciaPago})` : ''}`,
   }[formaDePago]
 
   const notas = [
-    `Pedido hecho desde la tienda web (${solicitud.modo === 'b2b' ? 'MCM Local' : 'particular'}).`,
+    evento
+      ? `Venta en el evento «${evento.nombre}» (${solicitud.modo === 'b2b' ? 'MCM Local' : 'particular'}).`
+      : `Pedido hecho desde la tienda web (${solicitud.modo === 'b2b' ? 'MCM Local' : 'particular'}).`,
     `Transporte: ${TEXTO_TRANSPORTE[solicitud.transporte]}.`,
     solicitud.transporte === 'consolacion'
       ? solicitud.fechaLimite
@@ -223,8 +246,15 @@ export async function crearPedidoCompleto(
     items: lineas,
     // Se etiqueta en vez de tocar sales_channel_id, que está reservado a la
     // cuenta contable por línea de producto.
-    tags: ['tienda-web', solicitud.modo === 'b2b' ? 'mcmlocal' : 'particular'],
-    description: `Pedido web de ${solicitud.cliente.nombre}`,
+    tags: [
+      'tienda-web',
+      solicitud.modo === 'b2b' ? 'mcmlocal' : 'particular',
+      // Holded quita los guiones: `evento-pascua-27` se guarda `eventopascua27`.
+      ...(evento ? ['evento', `evento-${evento.id}`] : []),
+    ],
+    description: evento
+      ? `${evento.nombre}: ${solicitud.cliente.nombre}`
+      : `Pedido web de ${solicitud.cliente.nombre}`,
     notes: notas,
     ...(solicitud.personaContacto
       ? { custom_fields: [{ field: 'persona_contacto', value: solicitud.personaContacto }] }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { modo, delegacion, esDelegacion, nombreModo, proponer } = useModo()
 const { unidades } = useCarrito()
+const { evento, salir: salirDelEvento } = useEvento()
 const { data: sesion } = await useFetch('/api/sesion')
 
 // Si su contacto en Holded lleva el tag `mcmlocal`, se le propone modo delegación
@@ -94,6 +95,25 @@ useHead({
         >
           {{ unidades }}
         </span>
+      </div>
+
+      <!--
+        En el puesto, quien atiende tiene que ver de un vistazo que la tablet está
+        en modo evento (pago en mano, sin envío). Y poder quitarlo sin ayuda.
+      -->
+      <div v-if="evento" class="border-t border-border bg-primary/10">
+        <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-1.5 text-xs">
+          <span class="mr-auto truncate">
+            <strong class="font-semibold">Venta en el puesto</strong> · {{ evento.nombre }}
+          </span>
+          <button
+            type="button"
+            class="shrink-0 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            @click="salirDelEvento"
+          >
+            Salir
+          </button>
+        </div>
       </div>
     </header>
 

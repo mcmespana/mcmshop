@@ -8,6 +8,7 @@
  * de forma tajante: si algo hubiera fallado por detrás, el equipo lo ve y avisa.
  */
 const { vaciar } = useCarrito()
+const { evento } = useEvento()
 
 onMounted(() => vaciar())
 
@@ -19,7 +20,10 @@ useSeoMeta({ title: 'Pago recibido' })
     <TicketImpresora>
       <IconoExito class="mx-auto" />
       <h1 class="mt-2 text-2xl font-semibold">¡Pago recibido!</h1>
-      <p class="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+      <p v-if="evento" class="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+        Gracias. Enseña esta pantalla en el puesto y te damos tu pedido.
+      </p>
+      <p v-else class="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
         Gracias. Te llega un correo con el detalle del pedido. Si has elegido mensajería, te
         confirmamos el coste del envío antes de mandar nada.
       </p>
@@ -28,11 +32,20 @@ useSeoMeta({ title: 'Pago recibido' })
         <InstruccionesPago metodo="tarjeta" />
       </div>
 
-      <div class="mx-auto mt-4 max-w-sm text-left">
+      <div v-if="evento" class="mt-6">
+        <NuxtLink
+          to="/"
+          class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
+        >
+          Hacer otro pedido
+        </NuxtLink>
+      </div>
+
+      <div v-if="!evento" class="mx-auto mt-4 max-w-sm text-left">
         <ContactoAyuda variante="destacada" />
       </div>
 
-      <div class="mt-6 flex flex-wrap justify-center gap-2">
+      <div v-if="!evento" class="mt-6 flex flex-wrap justify-center gap-2">
         <NuxtLink
           to="/mis-pedidos"
           class="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"

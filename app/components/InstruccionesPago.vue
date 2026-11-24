@@ -9,9 +9,13 @@
  *    que lo que se promete es que escribimos nosotros, no que pague ya.
  */
 defineProps<{
-  metodo: 'bizum' | 'transferencia' | 'tarjeta'
+  metodo: 'bizum' | 'transferencia' | 'tarjeta' | 'efectivo'
   /** Nombre de quien paga, para sugerir un concepto reconocible. Con tarjeta no hay nada que poner. */
   concepto?: string
+  /** En un puesto: el importe, en grande, que es lo que el equipo tiene que cobrar. */
+  importe?: number
+  /** Venta en un evento presencial: se paga ahí, delante del equipo. */
+  enPuesto?: boolean
 }>()
 
 const copiado = ref(false)
@@ -34,8 +38,24 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 
 <template>
   <div class="rounded-xl border border-border bg-card p-4">
+    <p v-if="importe !== undefined && metodo !== 'tarjeta'" class="mb-4 text-center">
+      <span class="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        A pagar
+      </span>
+      <span class="block text-4xl font-bold tabular-nums">{{ formatearEuros(importe) }}</span>
+    </p>
+
+    <!-- Efectivo, en el puesto: no hay nada que explicar más allá del importe -->
+    <div v-if="metodo === 'efectivo'" class="flex items-center gap-3">
+      <IconoEfectivo class="size-10 shrink-0" />
+      <div class="min-w-0">
+        <p class="font-medium">Pago en efectivo</p>
+        <p class="text-sm text-muted-foreground">Págalo en el puesto y te damos tu pedido.</p>
+      </div>
+    </div>
+
     <!-- Bizum: lo único que importa aquí es el código, así que manda el código -->
-    <div v-if="metodo === 'bizum'">
+    <div v-else-if="metodo === 'bizum'">
       <div class="flex items-center gap-3">
         <IconoBizum class="size-10 shrink-0" />
         <div class="min-w-0">
@@ -67,7 +87,10 @@ onBeforeUnmount(() => clearTimeout(temporizador))
         </span>
       </button>
 
-      <p v-if="concepto" class="mt-3 text-xs text-muted-foreground">
+      <p v-if="enPuesto" class="mt-3 text-xs text-muted-foreground">
+        Hazlo ahora y enseña el justificante en el puesto.
+      </p>
+      <p v-else-if="concepto" class="mt-3 text-xs text-muted-foreground">
         Pon <strong class="font-medium text-foreground">{{ concepto }}</strong> como concepto, para
         que sepamos que es tuyo.
       </p>
