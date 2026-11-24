@@ -9,8 +9,18 @@
  */
 const { vaciar } = useCarrito()
 const { evento } = useEvento()
+const { tiques, cargar } = useTiques()
+const ruta = useRoute()
 
-onMounted(() => vaciar())
+onMounted(() => {
+  vaciar()
+  // En el puesto, lo que hay que enseñar es el tique, no esta pantalla: se
+  // guardó antes de ir al banco y allí se espera a que el cobro se confirme.
+  if (!evento.value) return
+  cargar()
+  const tique = tiques.value.find((t) => t.pagoRedsys === String(ruta.query.pedido ?? ''))
+  if (tique) navigateTo({ path: '/tique', query: { t: tique.clave, nuevo: '1' } }, { replace: true })
+})
 
 useSeoMeta({ title: 'Pago recibido' })
 </script>

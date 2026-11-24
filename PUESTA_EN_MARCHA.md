@@ -277,29 +277,60 @@ de `/api/pago/`.
 
 ---
 
-## 6 bis. Ventas en eventos presenciales
+## 6 bis. Eventos presenciales y TPV
 
-Para vender en un puesto (pago en efectivo, Bizum o tarjeta ahí delante, sin envío
-y pidiendo sólo el nombre):
+Hay dos formas de vender en un evento, y se pueden usar a la vez:
 
-1. **Dar de alta el evento** en `shared/utils/eventos.ts`: id, nombre y fechas
-   (desde/hasta, incluidas). Se puede editar desde GitHub en el navegador; al
-   guardar en `main` se publica solo. Fuera de fechas no hace nada, no hace falta
-   borrarlo.
-2. **En el puesto**, abrir `https://tienda.movimientoconsolacion.com/evento/<id>`
-   en la tablet o móvil del equipo, o ponerlo en un QR para que cada cual pida
-   desde el suyo. Ese dispositivo queda en modo evento (franja verde arriba con
-   "Salir") hasta que acaben las fechas.
-3. **En Holded**, los pedidos llegan con los tags `evento` y `evento<id>` (Holded
-   quita los guiones) y en la nota la forma de pago: efectivo y Bizum como "comprobar",
-   tarjeta como "COBRADO". Sin correo del cliente no hay confirmación por email, y
-   al equipo no le llega un aviso por cada venta del puesto.
+### a) Cada persona pide desde su móvil
 
-Si se quiere que lo vea todo el que entre esos días, sin enlace, se pone
-`paraTodos: true` en el evento. Ojo: entonces también lo verá quien compre desde
-casa, y podría elegir "efectivo".
+1. **Dar de alta el evento** en `shared/utils/eventos.ts`: id, nombre, lugar, fechas
+   (`desde`/`hasta`, incluidas) y, si se quiere que se vea antes, `publicarDesde`. Se
+   puede editar desde GitHub en el navegador; al guardar en `main` se publica solo.
+   Pasado `hasta` se apaga solo.
+2. Mientras está publicado, sale **destacado arriba del todo en la bienvenida**
+   ("Estoy en el Congreso de Monitores"), y a quien ya conocía la tienda se le ofrece
+   en una franja del catálogo. También vale un QR a `/evento/<id>`.
+3. La persona elige, pone **nombre y localidad** (un solo campo, sin correo; si entra
+   con Google se guarda también en su cuenta) y elige efectivo, Bizum o tarjeta.
+4. Le sale un **tique con número** (Nº 023) que enseña en el puesto: qué lleva,
+   cuánto y cómo paga, con un sello de **PAGADO** o **A COBRAR** y una franja "en vivo"
+   con la hora corriendo, para distinguirlo de una captura. Queda guardado en su
+   móvil (`/tique`, o "Mis pedidos" en la franja de arriba).
 
-Cada venta sin correo crea un contacto nuevo en Holded con el nombre que se dé.
+### b) El equipo apunta ventas en el TPV (`/tpv`)
+
+Para la caja del puesto, o para un pedido que entra por teléfono:
+
+- **Clave:** `NUXT_TPV_CLAVE` en Vercel. Sin ella el TPV está cerrado para todos.
+  Cada dispositivo la mete una vez y queda dentro 30 días ("Salir del TPV" en el
+  resumen de ventas para un móvil prestado).
+- Arriba se elige el **evento** o "Sin evento" (y entonces si entra por teléfono u otro).
+- Tocar producto → talla/color → (nombre) → **Registrar venta**. Pago: efectivo,
+  Bizum, tarjeta (datáfono) o "paga luego". Entrega: se lo lleva o reservado. Si se
+  vende algo sin stock, pasa solo a reservado.
+- El botón de arriba a la derecha suma lo apuntado hoy **en ese dispositivo** por
+  forma de pago, para cuadrar la caja.
+
+### En Holded
+
+Todo pedido de evento o de TPV lleva el número del tique en la descripción
+(`Congreso de Monitores · nº 023 · Marta (Vila-real)`) y estas etiquetas (Holded
+quita los guiones):
+
+| Etiqueta | Cuándo |
+|---|---|
+| `tiendaweb` / `tpv` | De dónde viene |
+| `evento` + `evento<id>` | Vendido en un evento |
+| `canaltelefono` / `canalotro` | TPV sin evento |
+| `pagoefectivo`, `pagobizum`, `pagotarjeta`, `pagopendiente` | Cómo paga |
+| `cobrado` / `sincobrar` | Si ya está cobrado (tarjeta web, o lo marca el TPV) |
+| `entregado` / `reservado` | Sólo TPV: si se lo ha llevado |
+
+Las ventas sin correo crean un contacto nuevo con el nombre que se dé.
+
+**Los números son correlativos por evento sólo con Redis** (punto 5.3). Sin Redis
+cada instancia de Vercel llevaría su propia cuenta y se repetirían, así que se usa un
+código de cuatro letras (`K7F2`): funciona, pero es menos cómodo de cantar en la cola.
 
 ---
 

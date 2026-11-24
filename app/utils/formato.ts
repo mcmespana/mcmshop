@@ -22,3 +22,15 @@ export function textoStock(stock: number): { texto: string; tono: 'ok' | 'poco' 
 /** Aviso largo para cuando se añade algo que no está en el armario. */
 export const AVISO_SIN_STOCK =
   'No nos queda en el armario. Puedes pedirlo igualmente: lo encargamos, pero tardará más en llegarte.'
+
+/**
+ * Importe a secas, también a cero: 0 → "0,00 €".
+ *
+ * `formatearEuros` dice "Gratis" a cero porque se usa para precios de producto.
+ * En una suma de caja ("Efectivo: Gratis") eso confunde: un total es un total.
+ */
+export function formatearImporte(centimos: number): string {
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(
+    centimos / 100,
+  )
+}

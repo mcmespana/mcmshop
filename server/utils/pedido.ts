@@ -18,6 +18,7 @@ import {
 } from './holded'
 import type { LineaCorreo } from './correo'
 import { EVENTOS } from '../../shared/utils/eventos'
+import { siguienteNumero } from './numeracion'
 
 export interface LineaSolicitada {
   productoId: string
@@ -27,6 +28,21 @@ export interface LineaSolicitada {
 
 /** Cómo se paga. `efectivo` sólo existe en un evento presencial. */
 export type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo'
+
+/**
+ * Etiquetas comunes de Holded, para poder filtrar igual vengan de donde vengan:
+ *
+ *   origen   tienda-web · tpv
+ *   evento   evento + evento-<id>
+ *   pago     pago-efectivo · pago-bizum · pago-tarjeta · pago-transferencia · pago-pendiente
+ *   cobro    cobrado · sin-cobrar   (sólo cuando se sabe: tarjeta, o lo marca el TPV)
+ *   entrega  entregado · reservado  (sólo el TPV, que es quien lo sabe)
+ *
+ * Holded quita los guiones al guardar: `pago-efectivo` aparece como `pagoefectivo`.
+ */
+export function etiquetaPago(forma: FormaDePago | 'pendiente'): string {
+  return `pago-${forma}`
+}
 /** Cómo llega. `en-mano` sólo existe en un evento presencial. */
 export type Transporte = 'consolacion' | 'mensajeria' | 'en-mano'
 
@@ -198,7 +214,13 @@ export async function resolverContacto(
 export async function crearPedidoCompleto(
   solicitud: SolicitudPedido,
   formaDePago: FormaDePago,
-): Promise<{ id: string; totalCentimos: number; lineasCorreo: LineaCorreo[] }> {
+): Promise<{
+  id: string
+  totalCentimos: number
+  lineasCorreo: LineaCorreo[]
+  /** Número corto para el tique del puesto. Sólo en ventas de evento. */
+  numero: string | null
+}> {
   const { lineas, lineasCorreo, totalCentimos } = await prepararLineas(
     solicitud.lineas,
     solicitud.transporte,
@@ -214,6 +236,7 @@ export async function crearPedidoCompleto(
   // activo, y un pago con tarjeta de las 23:59 del último día se notifica (y llega
   // aquí) pasada la medianoche.
   const evento = EVENTOS.find((e) => e.id === solicitud.evento) ?? null
+  const numero = evento ? await siguienteNumero(evento.id) : null
 
   const textoPago = {
     transferencia: 'transferencia — pendiente de confirmar',
@@ -224,7 +247,7 @@ export async function crearPedidoCompleto(
 
   const notas = [
     evento
-      ? `Venta en el evento «${evento.nombre}» (${solicitud.modo === 'b2b' ? 'MCM Local' : 'particular'}).`
+      ? `Venta en el evento «${evento.nombre}», tique nº ${numero}, hecha por la persona desde su móvil.`
       : `Pedido hecho desde la tienda web (${solicitud.modo === 'b2b' ? 'MCM Local' : 'particular'}).`,
     `Transporte: ${TEXTO_TRANSPORTE[solicitud.transporte]}.`,
     solicitud.transporte === 'consolacion'
@@ -251,9 +274,11 @@ export async function crearPedidoCompleto(
       solicitud.modo === 'b2b' ? 'mcmlocal' : 'particular',
       // Holded quita los guiones: `evento-pascua-27` se guarda `eventopascua27`.
       ...(evento ? ['evento', `evento-${evento.id}`] : []),
+      etiquetaPago(formaDePago),
+      ...(formaDePago === 'tarjeta' ? ['cobrado'] : []),
     ],
     description: evento
-      ? `${evento.nombre}: ${solicitud.cliente.nombre}`
+      ? `${evento.nombre} · nº ${numero} · ${solicitud.cliente.nombre}`
       : `Pedido web de ${solicitud.cliente.nombre}`,
     notes: notas,
     ...(solicitud.personaContacto
@@ -270,5 +295,5 @@ export async function crearPedidoCompleto(
     }
   }
 
-  return { id: pedido.id, totalCentimos, lineasCorreo }
+  return { id: pedido.id, totalCentimos, lineasCorreo, numero }
 }

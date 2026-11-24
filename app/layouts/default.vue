@@ -1,7 +1,20 @@
 <script setup lang="ts">
 const { modo, delegacion, esDelegacion, nombreModo, proponer } = useModo()
 const { unidades } = useCarrito()
-const { evento, salir: salirDelEvento } = useEvento()
+const { evento, activar: activarEvento, salir: salirDelEvento } = useEvento()
+const ruta = useRoute()
+
+/**
+ * Quien ya eligió una vez no vuelve a pasar por la bienvenida, que es donde
+ * está la tarjeta del evento. Para que no se lo pierda, en el catálogo se le
+ * ofrece en una franja — sólo a particulares, que son los que van al puesto.
+ */
+const eventoInvitado = computed(() =>
+  !evento.value && modo.value === 'b2c' && ruta.path === '/' ? (eventosPublicados()[0] ?? null) : null,
+)
+const { tiques, cargar: cargarTiques } = useTiques()
+onMounted(cargarTiques)
+const hayTiques = computed(() => tiques.value.some((t) => t.eventoId === evento.value?.id))
 const { data: sesion } = await useFetch('/api/sesion')
 
 // Si su contacto en Holded lleva el tag `mcmlocal`, se le propone modo delegación
@@ -101,11 +114,38 @@ useHead({
         En el puesto, quien atiende tiene que ver de un vistazo que la tablet está
         en modo evento (pago en mano, sin envío). Y poder quitarlo sin ayuda.
       -->
+      <div v-if="eventoInvitado" class="border-t border-border bg-primary/10">
+        <button
+          type="button"
+          class="group mx-auto flex w-full max-w-7xl items-center gap-2 px-4 py-2 text-left text-sm"
+          @click="activarEvento(eventoInvitado.id)"
+        >
+          <span class="min-w-0 flex-1 truncate">
+            ¿Estás en el <strong class="font-semibold">{{ eventoInvitado.nombre }}</strong>?
+            <span class="text-muted-foreground">Pide aquí y recógelo en el puesto.</span>
+          </span>
+          <span class="flex shrink-0 items-center gap-1 font-medium text-primary">
+            Sí
+            <svg viewBox="0 0 24 24" class="size-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
       <div v-if="evento" class="border-t border-border bg-primary/10">
         <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-1.5 text-xs">
           <span class="mr-auto truncate">
-            <strong class="font-semibold">Venta en el puesto</strong> · {{ evento.nombre }}
+            <strong class="font-semibold">{{ evento.nombre }}</strong>
+            <span class="text-muted-foreground"> · recoges en el puesto</span>
           </span>
+          <NuxtLink
+            v-if="hayTiques"
+            to="/tique"
+            class="shrink-0 font-medium text-primary underline-offset-2 hover:underline"
+          >
+            Mis pedidos
+          </NuxtLink>
           <button
             type="button"
             class="shrink-0 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"

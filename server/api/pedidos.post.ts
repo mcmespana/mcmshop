@@ -115,12 +115,14 @@ export default defineEventHandler(async (event) => {
   const almacen = useStorage('pedidos')
 
   // Un reintento tras un timeout no puede crear un segundo pedido en Holded.
-  const yaHecho = await almacen.getItem<{ id: string }>(datos.claveIdempotencia)
-  if (yaHecho) return { id: yaHecho.id, repetido: true }
+  const yaHecho = await almacen.getItem<{ id: string; numero?: string | null }>(
+    datos.claveIdempotencia,
+  )
+  if (yaHecho) return { id: yaHecho.id, numero: yaHecho.numero ?? null, repetido: true }
 
   const sesion = await leerSesion(event)
 
-  const { id, totalCentimos, lineasCorreo } = await crearPedidoCompleto(
+  const { id, totalCentimos, lineasCorreo, numero } = await crearPedidoCompleto(
     {
       ...datos,
       contactoConocido:
@@ -129,7 +131,7 @@ export default defineEventHandler(async (event) => {
     datos.formaDePago,
   )
 
-  await almacen.setItem(datos.claveIdempotencia, { id })
+  await almacen.setItem(datos.claveIdempotencia, { id, numero })
 
   // Los correos van después de guardar la idempotencia y sin bloquear: el pedido
   // ya existe y un fallo de Resend no puede convertirse en un error que empuje al
@@ -151,5 +153,5 @@ export default defineEventHandler(async (event) => {
     ]),
   )
 
-  return { id, repetido: false, totalCentimos }
+  return { id, numero, repetido: false, totalCentimos }
 })

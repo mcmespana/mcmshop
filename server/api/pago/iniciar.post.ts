@@ -65,5 +65,7 @@ export default defineEventHandler(async (event) => {
     urlKo: `${config.public.siteUrl}/pago/ko`,
   })
 
-  return formulario
+  // El número de Redsys también va a la página: en un evento, la pantalla del
+  // tique lo usa para preguntar cuándo ha confirmado el banco.
+  return { ...formulario, numeroPedido }
 })
