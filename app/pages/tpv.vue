@@ -167,6 +167,7 @@ function imagenDe(p: ProductoCatalogo): string | null {
 }
 
 function stockTexto(p: ProductoCatalogo): string {
+  if (esReserva(p, p.stock)) return 'reserva'
   if (p.stock <= 0) return 'sin stock'
   return `${p.stock} en stock`
 }
@@ -340,10 +341,16 @@ function stockTexto(p: ProductoCatalogo): string {
                   </span>
                 </span>
                 <span class="flex flex-1 flex-col p-3">
+                  <span
+                    v-if="esSilentMerch(p)"
+                    class="mcm-silent-marca mb-0.5 text-[9px] text-muted-foreground"
+                  >
+                    Silent Merch
+                  </span>
                   <span class="text-sm leading-snug font-medium">{{ p.nombre }}</span>
                   <span class="mt-auto flex items-baseline justify-between gap-2 pt-1.5">
                     <span class="font-semibold tabular-nums">{{ formatearEuros(p.precioCentimos) }}</span>
-                    <span class="text-xs tabular-nums" :class="p.stock > 0 ? 'text-muted-foreground' : 'text-warn'">
+                    <span class="text-xs tabular-nums" :class="p.stock > 0 || esReserva(p, p.stock) ? 'text-muted-foreground' : 'text-warn'">
                       {{ stockTexto(p) }}
                     </span>
                   </span>

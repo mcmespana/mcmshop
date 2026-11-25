@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { filtrarPorModo, obtenerCatalogo } from '../utils/catalogo'
+import { ordenarPorCategoria } from '../../shared/utils/categorias'
 
 const consulta = z.object({
   modo: z.enum(['b2b', 'b2c']).default('b2c'),
@@ -12,7 +13,8 @@ export default defineEventHandler(async (event) => {
 
   return {
     modo,
-    productos: filtrarPorModo(catalogo, modo),
+    // Agrupado por secciones, en el orden de cada público (ver categorias.ts).
+    productos: ordenarPorCategoria(filtrarPorModo(catalogo, modo), modo),
     generadoEn: catalogo.generadoEn,
     // Diagnóstico para el equipo, no para el cliente final.
     diagnostico: {

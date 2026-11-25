@@ -115,6 +115,13 @@ const nombreEnPartes = computed(() => {
           <span class="min-w-0 flex-1">
             <span class="block font-medium">{{ l.nombre }}</span>
             <span v-if="l.variante" class="block text-muted-foreground">{{ l.variante }}</span>
+            <!-- Para el equipo: esto no se da hoy, se avisa cuando llegue -->
+            <span
+              v-if="l.reserva"
+              class="mt-0.5 inline-block rounded-sm bg-foreground px-1.5 py-px text-[10px] font-semibold tracking-wide text-card uppercase"
+            >
+              Reserva · no se entrega hoy
+            </span>
           </span>
           <span class="shrink-0 tabular-nums">{{ formatearImporte(l.precioCentimos * l.cantidad) }}</span>
         </li>

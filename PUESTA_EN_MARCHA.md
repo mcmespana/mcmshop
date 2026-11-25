@@ -19,6 +19,24 @@ En cada producto que quieras vender, añade el tag:
 
 Mayúsculas y minúsculas dan igual (`B2B`, `b2b` y ` B2B ` valen lo mismo).
 
+### Tags opcionales: Silent Merch y reservas
+
+- `silentmerch` → la colección Silent Merch: tarjeta especial de tinta, su propia
+  sección, **la primera** para particulares y en el puesto, y **la última** para
+  delegaciones. Lleva la reserva incluida.
+- `reserva` → se puede pedir aunque no haya stock. En vez de "Sin stock" sale
+  **Reserva** ("Pagas ahora, te avisamos cuando llegue"). El pedido entra en Holded con
+  el tag `reserva` y cada línea reservada lleva `RESERVA · talla` en la descripción,
+  para saber qué encargar. Plazo que se promete: 2 meses como mucho
+  (`PLAZO_RESERVA` en `shared/utils/categorias.ts`).
+
+Con reservas en el carrito aparece un enlace discreto, "Prefiero pagar más adelante",
+que crea el pedido con `pago-pendiente`. En el puesto no se ofrece: ahí se paga en el
+momento, y lo reservado pide un teléfono o correo para avisar.
+
+Las secciones del catálogo salen del nombre (pañuelos, camisetas, sudaderas, otros), en
+ese orden.
+
 Mientras pruebas, `NUXT_CATALOGO_SIN_FILTRO=true` se salta el filtro y muestra todo.
 **En producción tiene que quedar en `false`.**
 

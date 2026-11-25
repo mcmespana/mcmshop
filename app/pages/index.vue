@@ -4,6 +4,7 @@ import IconoCamiseta from '~/components/IconoCamiseta.vue'
 import IconoSudadera from '~/components/IconoSudadera.vue'
 import IconoPanuelo from '~/components/IconoPanuelo.vue'
 import IconoOtros from '~/components/IconoOtros.vue'
+import type { Component } from 'vue'
 
 const { modo } = useModo()
 
@@ -30,52 +31,71 @@ function normalizar(texto: string): string {
 }
 
 /**
- * Categorías rápidas para el catálogo. Es un atajo visual, no un dato de Holded:
- * se detectan por el nombre del producto. Con 13 productos hoy no hace falta
- * más, y si algún día no encaja ninguno, cae en "Otros" en vez de desaparecer.
+ * Categorías del catálogo: Silent Merch por tag, el resto por el nombre del
+ * producto (ver shared/utils/categorias.ts). El servidor ya manda los
+ * productos ordenados por sección, en el orden de cada público.
  */
-const CATEGORIAS = [
-  { id: 'camiseta', etiqueta: 'Camisetas', icono: IconoCamiseta, prueba: /camiseta/ },
-  { id: 'sudadera', etiqueta: 'Sudaderas', icono: IconoSudadera, prueba: /sudadera/ },
-  { id: 'panuelo', etiqueta: 'Pañuelos', icono: IconoPanuelo, prueba: /pa[nñ]uelo/ },
-] as const
+const ICONOS: Record<IdCategoria, Component> = {
+  silentmerch: IconoCamiseta,
+  panuelo: IconoPanuelo,
+  camiseta: IconoCamiseta,
+  sudadera: IconoSudadera,
+  otros: IconoOtros,
+}
 
-const categoria = ref<string | null>(null)
+const categoria = ref<IdCategoria | null>(null)
 
-const categoriasConTotal = computed(() => {
-  const todos = data.value?.productos ?? []
-  const contadas = CATEGORIAS.map((c) => ({
-    ...c,
-    total: todos.filter((p) => c.prueba.test(normalizar(p.nombre))).length,
-  })).filter((c) => c.total > 0)
-
-  const totalOtros = todos.length - contadas.reduce((s, c) => s + c.total, 0)
-  return totalOtros > 0
-    ? [...contadas, { id: 'otros', etiqueta: 'Otros', icono: IconoOtros, total: totalOtros }]
-    : contadas
+/** Las secciones con lo que hay en cada una, en el orden en que llegan. */
+const secciones = computed(() => {
+  const grupos = new Map<IdCategoria, { categoria: Categoria; productos: ProductoCatalogo[] }>()
+  for (const p of data.value?.productos ?? []) {
+    const c = categoriaDe(p)
+    if (!grupos.has(c.id)) grupos.set(c.id, { categoria: c, productos: [] })
+    grupos.get(c.id)!.productos.push(p)
+  }
+  return [...grupos.values()]
 })
+
+const categoriasConTotal = computed(() =>
+  secciones.value.map((s) => ({
+    id: s.categoria.id,
+    etiqueta: s.categoria.etiqueta,
+    icono: ICONOS[s.categoria.id],
+    total: s.productos.length,
+  })),
+)
 
 const productos = computed(() => {
   let lista = data.value?.productos ?? []
 
   if (categoria.value) {
-    const def = CATEGORIAS.find((c) => c.id === categoria.value)
-    lista = def
-      ? lista.filter((p) => def.prueba.test(normalizar(p.nombre)))
-      : lista.filter((p) => !CATEGORIAS.some((c) => c.prueba.test(normalizar(p.nombre))))
+    lista = lista.filter((p) => categoriaDe(p).id === categoria.value)
   }
 
-  const q = busqueda.value.trim().toLowerCase()
+  const q = normalizar(busqueda.value.trim())
   if (!q) return lista
   return lista.filter(
     (p) =>
-      p.nombre.toLowerCase().includes(q) ||
-      p.descripcion?.toLowerCase().includes(q) ||
-      p.variantes.some((v) => v.etiqueta.toLowerCase().includes(q)),
+      normalizar(p.nombre).includes(q) ||
+      normalizar(p.descripcion ?? '').includes(q) ||
+      p.variantes.some((v) => normalizar(v.etiqueta).includes(q)),
   )
 })
 
-function alternarCategoria(id: string) {
+/**
+ * Sin filtro ni búsqueda, el catálogo se enseña por secciones con su título.
+ * Filtrando, una sola rejilla: los títulos sobrarían.
+ */
+const porSecciones = computed(() => !categoria.value && !busqueda.value.trim())
+
+/** Índice global de cada producto, para que la cascada siga entre secciones. */
+const indiceDe = computed(() => {
+  const mapa = new Map<string, number>()
+  ;(data.value?.productos ?? []).forEach((p, i) => mapa.set(p.id, i))
+  return mapa
+})
+
+function alternarCategoria(id: IdCategoria) {
   categoria.value = categoria.value === id ? null : id
 }
 
@@ -93,7 +113,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', alPulsar))
 
 useSeoMeta({
   title: 'Catálogo',
-  description: 'Camisetas, sudaderas y pañuelos del Movimiento Consolación para el Mundo.',
+  description: 'Silent Merch, camisetas, sudaderas y pañuelos del Movimiento Consolación para el Mundo.',
 })
 </script>
 
@@ -142,14 +162,24 @@ useSeoMeta({
             :aria-pressed="categoria === c.id"
             class="group flex items-center gap-2 rounded-full border py-1 pr-3.5 pl-1.5 text-sm transition"
             :class="
-              categoria === c.id
-                ? 'border-primary bg-primary/10 font-medium text-primary-hover'
-                : 'border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground'
+              c.id === 'silentmerch'
+                ? categoria === c.id
+                  ? 'mcm-silent border-transparent pl-3.5 font-medium'
+                  : 'border-foreground/70 pl-3.5 font-medium text-foreground hover:border-foreground'
+                : categoria === c.id
+                  ? 'border-primary bg-primary/10 font-medium text-primary-hover'
+                  : 'border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground'
             "
             @click="alternarCategoria(c.id)"
           >
-            <component :is="c.icono" :activo="categoria === c.id" class="size-6" />
-            {{ c.etiqueta }}
+            <component
+              :is="c.icono"
+              v-if="c.id !== 'silentmerch'"
+              :activo="categoria === c.id"
+              class="size-6"
+            />
+            <span v-if="c.id === 'silentmerch'" class="mcm-silent-marca text-[11px]">{{ c.etiqueta }}</span>
+            <template v-else>{{ c.etiqueta }}</template>
             <span class="text-xs text-muted-foreground">{{ c.total }}</span>
           </button>
         </div>
@@ -183,6 +213,39 @@ useSeoMeta({
               {{ modo === 'b2b' ? 'delegaciones' : 'pedidos personales' }}.
             </template>
           </p>
+        </div>
+
+        <!-- Por secciones: pañuelos, camisetas, sudaderas… y el Silent Merch con su cabecera -->
+        <div v-else-if="porSecciones" class="space-y-9">
+          <section v-for="s in secciones" :key="s.categoria.id" :aria-labelledby="`seccion-${s.categoria.id}`">
+            <header v-if="s.categoria.id === 'silentmerch'" class="mb-4">
+              <div class="flex items-center gap-3">
+                <h2 :id="`seccion-${s.categoria.id}`" class="mcm-silent-marca shrink-0 text-sm">
+                  Silent Merch
+                </h2>
+                <span class="mcm-silent-raya h-px flex-1 bg-foreground/25" aria-hidden="true" />
+              </div>
+              <p class="mt-1.5 text-sm text-muted-foreground">
+                Para llevar el movimiento cualquier día.
+              </p>
+            </header>
+            <h2
+              v-else
+              :id="`seccion-${s.categoria.id}`"
+              class="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"
+            >
+              <component :is="ICONOS[s.categoria.id]" class="size-5" />
+              {{ s.categoria.etiqueta }}
+            </h2>
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <TarjetaProducto
+                v-for="p in s.productos"
+                :key="p.id"
+                :producto="p"
+                :indice="indiceDe.get(p.id) ?? 0"
+              />
+            </div>
+          </section>
         </div>
 
         <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -14,6 +14,12 @@ export interface LineaCarrito {
   imagen: string | null
   /** Stock que tenía la variante al añadirla. Sólo informativo. */
   stock: number
+  /**
+   * Se pidió sin stock de un producto que admite reserva. Es para pintarlo:
+   * quien decide de verdad si es reserva es el servidor, con el stock de ese
+   * momento. Opcional porque los carritos guardados antes no lo traen.
+   */
+  reserva?: boolean
 }
 
 const CLAVE_ALMACEN = 'mcm_carrito_v1'
@@ -71,6 +77,7 @@ export function useCarrito() {
         cantidad,
         imagen: producto.imagenes[0]?.miniatura ?? null,
         stock: variante?.stock ?? producto.stock,
+        reserva: esReserva(producto, variante?.stock ?? producto.stock),
       })
     }
     abierto.value = true
@@ -99,6 +106,7 @@ export function useCarrito() {
     lineas.value.reduce((s, l) => s + l.precioCentimos * l.cantidad, 0),
   )
   const vacio = computed(() => lineas.value.length === 0)
+  const hayReserva = computed(() => lineas.value.some((l) => l.reserva))
 
   return {
     lineas,
@@ -110,5 +118,6 @@ export function useCarrito() {
     unidades,
     totalCentimos,
     vacio,
+    hayReserva,
   }
 }
