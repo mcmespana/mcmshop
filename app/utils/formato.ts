@@ -34,3 +34,9 @@ export function formatearImporte(centimos: number): string {
     centimos / 100,
   )
 }
+
+/**
+ * Lo único que hay que decir de una reserva. Corto a propósito: cómo se
+ * consigue (se encarga aparte) no es asunto de quien la pide.
+ */
+export const TEXTO_RESERVA = 'Pagas ahora, te avisamos cuando llegue.'

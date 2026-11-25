@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
   if (yaHecho) return { ...yaHecho, repetido: true }
 
   // Sin transporte: lo vendido en el TPV se entrega en mano o se reserva.
-  const { lineas, totalCentimos } = await prepararLineas(datos.lineas, 'en-mano')
+  const { lineas, totalCentimos, hayReserva } = await prepararLineas(datos.lineas, 'en-mano')
 
   const { cliente } = datos
   const nombreBase = cliente.nombre?.trim() || (evento ? `Venta en ${evento.nombre}` : 'Venta TPV')
@@ -136,6 +136,7 @@ export default defineEventHandler(async (event) => {
       etiquetaPago(datos.pago),
       cobrado ? 'cobrado' : 'sin-cobrar',
       datos.entrega,
+      ...(hayReserva ? ['reserva'] : []),
     ],
     description: `${evento?.nombre ?? 'TPV'} · nº ${numero} · ${esDelegacion ? nombreDelegacion : nombre}`,
     notes: notas,

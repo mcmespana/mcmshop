@@ -10,11 +10,12 @@ const esquemaBase = z.object({
   claveIdempotencia: z.string().min(8).max(100),
   modo: z.enum(['b2b', 'b2c']),
   /**
-   * Sólo transferencia y bizum: pagar con tarjeta va por /api/pago/iniciar, que
+   * Sólo transferencia, bizum, lo del puesto, o `pendiente` (reservar sin
+   * pagar, que sólo se acepta con alguna reserva en el carrito). Pagar con tarjeta va por /api/pago/iniciar, que
    * comparte este esquema pero nunca llega a crear el pedido con él — lo crea
    * la notificación de Redsys, una vez que el banco confirma el cobro.
    */
-  formaDePago: z.enum(['transferencia', 'bizum', 'efectivo', 'datafono']).optional(),
+  formaDePago: z.enum(['transferencia', 'bizum', 'efectivo', 'datafono', 'pendiente']).optional(),
   transporte: z.enum(['consolacion', 'mensajeria', 'en-mano']),
   /** Id del evento presencial, si el pedido se hace en un puesto. */
   evento: z.string().max(60).optional(),
@@ -66,6 +67,10 @@ export const esquemaPedido = esquemaBase.superRefine((datos, ctx) => {
     // El datáfono sólo existe en los eventos que lo llevan.
     if (datos.formaDePago === 'datafono' && !evento.datafono) {
       ctx.addIssue({ code: 'custom', message: 'sin-datafono', path: ['formaDePago'] })
+    }
+    // En el puesto se paga ahí mismo, también lo reservado: es lo que se traza.
+    if (datos.formaDePago === 'pendiente') {
+      ctx.addIssue({ code: 'custom', message: 'pagar-en-puesto', path: ['formaDePago'] })
     }
     return
   }

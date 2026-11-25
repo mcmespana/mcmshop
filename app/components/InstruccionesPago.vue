@@ -9,7 +9,7 @@
  *    que lo que se promete es que escribimos nosotros, no que pague ya.
  */
 defineProps<{
-  metodo: 'bizum' | 'transferencia' | 'tarjeta' | 'efectivo' | 'datafono'
+  metodo: 'bizum' | 'transferencia' | 'tarjeta' | 'efectivo' | 'datafono' | 'pendiente'
   /** Nombre de quien paga, para sugerir un concepto reconocible. Con tarjeta no hay nada que poner. */
   concepto?: string
   /** En un puesto: el importe, en grande, que es lo que el equipo tiene que cobrar. */
@@ -45,8 +45,17 @@ onBeforeUnmount(() => clearTimeout(temporizador))
       <span class="block text-4xl font-bold tabular-nums">{{ formatearEuros(importe) }}</span>
     </p>
 
+    <!-- Reserva sin pagar: no hay nada que hacer todavía, escribimos nosotros -->
+    <div v-if="metodo === 'pendiente'" class="flex items-center gap-3">
+      <IconoTransferencia class="size-10 shrink-0" />
+      <div class="min-w-0">
+        <p class="font-medium">Sin pagar todavía</p>
+        <p class="text-sm text-muted-foreground">Te escribimos para el pago.</p>
+      </div>
+    </div>
+
     <!-- Efectivo, en el puesto: no hay nada que explicar más allá del importe -->
-    <div v-if="metodo === 'datafono'" class="flex items-center gap-3">
+    <div v-else-if="metodo === 'datafono'" class="flex items-center gap-3">
       <IconoTarjeta class="size-10 shrink-0" />
       <div class="min-w-0">
         <p class="font-medium">Pago con tarjeta en el puesto</p>

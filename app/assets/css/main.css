@@ -675,6 +675,153 @@ input[type='checkbox'] {
   animation: mcm-tpv-hecho 1600ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
+/*
+  ── Silent Merch (TarjetaProducto.vue, sección del catálogo) ────────────────
+  La colección de "camiseta del movimiento que te pondrías cualquier día", así
+  que no puede parecer una camiseta más del armario. La tarjeta es de tinta:
+  casi negra, cálida, la misma en claro y en oscuro (una etiqueta negra no se
+  invierte), con un filete fino por dentro como el de una etiqueta cosida.
+
+  Nada de degradado de fondo ni glow (design.md §5): lo premium sale del
+  material oscuro, del espaciado de la marca y de un solo brillo que cruza la
+  tarjeta al llegar y al pasar el ratón — el mismo gesto que la entrada de
+  evento de la bienvenida, que es la otra cosa "especial" de la tienda.
+
+  Los tokens se redefinen dentro de la tarjeta, así que todo lo que va dentro
+  (selector de talla, botones, la silueta sin foto) se adapta sin tocarlo.
+*/
+.mcm-silent {
+  --color-background: oklch(0.2 0.006 70);
+  --color-card: oklch(0.16 0.006 70);
+  --color-border: oklch(0.34 0.008 70);
+  --color-foreground: oklch(0.96 0.006 85);
+  --color-muted-foreground: oklch(0.74 0.008 80);
+  --color-primary: oklch(0.95 0.008 85);
+  --color-primary-hover: oklch(1 0 0);
+  --color-primary-foreground: oklch(0.16 0.006 70);
+  --color-warn: oklch(0.78 0.13 55);
+
+  position: relative;
+  isolation: isolate;
+  background-color: var(--color-card);
+  color: var(--color-foreground);
+  border: 1px solid oklch(0.3 0.008 70);
+  transition: border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.mcm-silent:hover {
+  border-color: oklch(0.55 0.01 80);
+}
+
+/* Filete interior: una línea fina a 5 px del borde, como una etiqueta. */
+.mcm-silent::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid oklch(1 0 0 / 0.07);
+  border-radius: calc(var(--radius-xl) - 4px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* El texto de la marca: espaciado ancho y en mayúsculas, que es lo que la hace marca. */
+.mcm-silent-marca {
+  font-weight: 650;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+/*
+  El brillo: una franja que cruza la tarjeta entera, una vez al llegar (con el
+  retraso de la cascada, que se pasa en --retraso) y otra al pasar el ratón.
+  Mismo truco que .mcm-evento-brillo: dos keyframes iguales con distinto nombre
+  para poder repetir sin JavaScript.
+*/
+.mcm-silent-brillo {
+  position: absolute;
+  inset: -10% auto -10% -40%;
+  width: 35%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    oklch(1 0 0 / 0.13),
+    transparent
+  );
+  opacity: 0;
+  transform: translateX(0) skewX(-14deg);
+  animation: mcm-brillo-silent 1100ms cubic-bezier(0.77, 0, 0.175, 1) both;
+  animation-delay: calc(var(--retraso, 0ms) + 380ms);
+}
+
+.mcm-silent:hover .mcm-silent-brillo {
+  animation: mcm-brillo-silent-otra 1100ms cubic-bezier(0.77, 0, 0.175, 1) both;
+}
+
+@keyframes mcm-brillo-silent {
+  from {
+    opacity: 1;
+    transform: translateX(0) skewX(-14deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(560%) skewX(-14deg);
+  }
+}
+
+@keyframes mcm-brillo-silent-otra {
+  from {
+    opacity: 1;
+    transform: translateX(0) skewX(-14deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(560%) skewX(-14deg);
+  }
+}
+
+/*
+  Entrada propia: la tarjeta de tinta sube un poco más despacio que las otras y
+  sin el pequeño zoom, para que se lea "llega" y no "rebota".
+*/
+@keyframes mcm-silent-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mcm-silent-entrada {
+  animation: mcm-silent-entrada 560ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Cabecera de la sección: la marca con una raya que se dibuja al llegar. */
+.mcm-silent-raya {
+  transform-origin: left;
+  animation: mcm-silent-raya 700ms 120ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes mcm-silent-raya {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sin brillo: es puro movimiento y no dice nada que no diga ya la tarjeta. */
+  .mcm-silent-brillo {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

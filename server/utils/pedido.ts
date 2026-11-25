@@ -18,6 +18,7 @@ import {
 } from './holded'
 import type { LineaCorreo } from './correo'
 import { EVENTOS } from '../../shared/utils/eventos'
+import { esReserva, PLAZO_RESERVA } from '../../shared/utils/categorias'
 import { siguienteNumero } from './numeracion'
 
 export interface LineaSolicitada {
@@ -26,8 +27,12 @@ export interface LineaSolicitada {
   cantidad: number
 }
 
-/** Cómo se paga. `efectivo` sólo existe en un evento presencial. */
-export type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | 'datafono'
+/**
+ * Cómo se paga. `efectivo` y `datafono` sólo existen en un evento presencial.
+ * `pendiente` es reservar sin pagar todavía: sólo vale si el pedido lleva
+ * alguna reserva, y la pantalla lo esconde un poco para que lo normal sea pagar.
+ */
+export type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | 'datafono' | 'pendiente'
 
 /**
  * Etiquetas comunes de Holded, para poder filtrar igual vengan de donde vengan:
@@ -38,6 +43,7 @@ export type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | '
  *            pago-datafono (tarjeta en el puesto) · pago-transferencia · pago-pendiente
  *   cobro    cobrado · sin-cobrar   (sólo cuando se sabe: tarjeta, o lo marca el TPV)
  *   entrega  entregado · reservado  (sólo el TPV, que es quien lo sabe)
+ *   reserva  reserva               (lleva algo que se encarga sin stock: Silent Merch…)
  *
  * Holded quita los guiones al guardar: `pago-efectivo` aparece como `pagoefectivo`.
  */
@@ -83,6 +89,8 @@ export interface PedidoPreparado {
   lineas: LineaPedido[]
   lineasCorreo: LineaCorreo[]
   totalCentimos: number
+  /** Si alguna línea es una reserva: se pide sin stock y se encarga aparte. */
+  hayReserva: boolean
 }
 
 const TEXTO_TRANSPORTE = {
@@ -113,6 +121,7 @@ export async function prepararLineas(
   const lineas: LineaPedido[] = []
   const lineasCorreo: LineaCorreo[] = []
   let totalCentimos = 0
+  let hayReserva = false
 
   for (const pedida of lineasPedidas) {
     const producto = porId.get(pedida.productoId)
@@ -137,13 +146,22 @@ export async function prepararLineas(
     const precio = variante?.precioCentimos ?? producto.precioCentimos
     totalCentimos += precio * pedida.cantidad
 
+    // Se decide aquí, con el stock de ahora, y no con lo que diga el navegador:
+    // si entre medias ha llegado stock, ya no es reserva y se puede mandar.
+    const reserva = esReserva(producto, variante?.stock ?? producto.stock)
+    if (reserva) hayReserva = true
+    // En la línea, para que al encargar se vea de un vistazo qué hay que pedir.
+    const descripcion = [reserva ? 'RESERVA' : null, variante?.etiqueta ?? null]
+      .filter(Boolean)
+      .join(' · ')
+
     lineas.push({
       type: 'product',
       // La variante viaja dentro del product_id con almohadilla: es la única
       // sintaxis que Holded acepta al crear. Así resuelve además el SKU correcto.
       product_id: variante ? `${producto.id}#${variante.id}` : producto.id,
       name: producto.nombre,
-      ...(variante ? { description: variante.etiqueta } : {}),
+      ...(descripcion ? { description: descripcion } : {}),
       units: pedida.cantidad,
       price: Number(aImporteHolded(precio)),
       taxes: [],
@@ -154,6 +172,7 @@ export async function prepararLineas(
       variante: variante?.etiqueta ?? null,
       cantidad: pedida.cantidad,
       precioCentimos: precio,
+      reserva,
     })
   }
 
@@ -170,7 +189,35 @@ export async function prepararLineas(
     })
   }
 
-  return { lineas, lineasCorreo, totalCentimos }
+  return { lineas, lineasCorreo, totalCentimos, hayReserva }
+}
+
+/**
+ * Reglas de las reservas que dependen del catálogo, y por eso no caben en la
+ * validación del formulario:
+ *
+ *  - Reservar sin pagar es una puerta para casos concretos, no un método más:
+ *    sin nada reservado en el carrito no se acepta.
+ *  - En un puesto no se pide correo, pero lo reservado no se lleva hoy: hace
+ *    falta un correo o un teléfono para avisar cuando llegue.
+ */
+export function comprobarReserva(
+  hayReserva: boolean,
+  solicitud: Pick<SolicitudPedido, 'evento' | 'cliente'>,
+  formaDePago: FormaDePago,
+): void {
+  if (formaDePago === 'pendiente' && !hayReserva) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Lo que hay en el carrito ya no es una reserva. Elige cómo pagarlo.',
+    })
+  }
+  if (hayReserva && solicitud.evento && !solicitud.cliente.email && !solicitud.cliente.telefono) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Déjanos un correo o un teléfono para avisarte cuando llegue tu reserva.',
+    })
+  }
 }
 
 /**
@@ -221,11 +268,16 @@ export async function crearPedidoCompleto(
   lineasCorreo: LineaCorreo[]
   /** Número corto para el tique del puesto. Sólo en ventas de evento. */
   numero: string | null
+  hayReserva: boolean
 }> {
-  const { lineas, lineasCorreo, totalCentimos } = await prepararLineas(
+  const { lineas, lineasCorreo, totalCentimos, hayReserva } = await prepararLineas(
     solicitud.lineas,
     solicitud.transporte,
   )
+
+  // Con tarjeta ya se comprobó antes de mandar al banco (pago/iniciar): aquí el
+  // cobro está hecho y tumbar el pedido sería cobrar sin dejar rastro.
+  if (formaDePago !== 'tarjeta') comprobarReserva(hayReserva, solicitud, formaDePago)
 
   const contactoId = await resolverContacto(
     solicitud.cliente,
@@ -245,6 +297,7 @@ export async function crearPedidoCompleto(
     efectivo: 'efectivo en el puesto — comprobar la caja',
     datafono: 'tarjeta con el datáfono del puesto — comprobar el cobro',
     tarjeta: `tarjeta — COBRADO${solicitud.referenciaPago ? ` (ref. ${solicitud.referenciaPago})` : ''}`,
+    pendiente: 'SIN PAGAR — reserva hecha sin pagar, hay que cobrarla',
   }[formaDePago]
 
   const notas = [
@@ -258,6 +311,9 @@ export async function crearPedidoCompleto(
         : 'Sin fecha límite concreta para la entrega.'
       : null,
     `Pago: ${textoPago}.`,
+    hayReserva
+      ? `RESERVA: las líneas marcadas «RESERVA» se encargan aparte. Avisar al cliente cuando lleguen (${PLAZO_RESERVA}).`
+      : null,
     solicitud.personaContacto ? `Persona de contacto: ${solicitud.personaContacto}.` : null,
     solicitud.cliente.telefono ? `Teléfono: ${solicitud.cliente.telefono}.` : null,
     solicitud.notas ? `Nota del cliente: ${solicitud.notas}` : null,
@@ -278,6 +334,7 @@ export async function crearPedidoCompleto(
       ...(evento ? ['evento', `evento-${evento.id}`] : []),
       etiquetaPago(formaDePago),
       ...(formaDePago === 'tarjeta' ? ['cobrado'] : []),
+      ...(hayReserva ? ['reserva'] : []),
     ],
     description: evento
       ? `${evento.nombre} · nº ${numero} · ${solicitud.cliente.nombre}`
@@ -297,5 +354,5 @@ export async function crearPedidoCompleto(
     }
   }
 
-  return { id: pedido.id, totalCentimos, lineasCorreo, numero }
+  return { id: pedido.id, totalCentimos, lineasCorreo, numero, hayReserva }
 }

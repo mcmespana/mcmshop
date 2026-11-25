@@ -14,6 +14,7 @@ import {
   HORAS_RESPUESTA_TRANSFERENCIA,
   IBAN_TRANSFERENCIA,
 } from '../../shared/utils/pago'
+import { PLAZO_RESERVA } from '../../shared/utils/categorias'
 import { formatearEuros } from './dinero'
 import type { FormaDePago, Transporte } from './pedido'
 
@@ -22,6 +23,8 @@ export interface LineaCorreo {
   variante: string | null
   cantidad: number
   precioCentimos: number
+  /** Se encarga aparte porque no había stock. */
+  reserva?: boolean
 }
 
 export interface DatosCorreo {
@@ -98,6 +101,7 @@ function tablaLineas(lineas: LineaCorreo[], totalCentimos: number): string {
         <td style="padding:8px 0;border-bottom:1px solid #e8e6e1;">
           <strong style="font-weight:600;">${escapar(l.nombre)}</strong>
           ${l.variante ? `<br><span style="color:#6b6a66;font-size:13px;">${escapar(l.variante)}</span>` : ''}
+          ${l.reserva ? `<br><span style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:999px;background:#1c1b19;color:#f4f2ec;font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;">Reserva</span>` : ''}
         </td>
         <td style="padding:8px 0;border-bottom:1px solid #e8e6e1;text-align:center;white-space:nowrap;">
           ${l.cantidad}
@@ -149,6 +153,7 @@ const PAGO_EQUIPO = {
   efectivo: 'Efectivo en el puesto — comprobar la caja',
   datafono: 'Tarjeta con el datáfono del puesto — comprobar el cobro',
   bizum: 'Bizum ONG — pendiente de confirmar',
+  pendiente: 'SIN PAGAR — reserva hecha sin pagar, hay que escribirle para cobrarla',
   transferencia: `Transferencia — hay que escribirle en menos de ${HORAS_RESPUESTA_TRANSFERENCIA} h con el importe final`,
 } as const
 
@@ -190,6 +195,14 @@ function bloquePago(datos: DatosCorreo): string {
   const titulo = (texto: string) =>
     `<h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">${texto}</h2>`
   const concepto = escapar(datos.cliente.nombre || datos.cliente.email || '')
+
+  if (datos.formaDePago === 'pendiente') {
+    return `
+      ${titulo('El pago')}
+      <p style="margin:0;line-height:1.5;">
+        Sin pagar todavía. Te escribimos para el pago.
+      </p>`
+  }
 
   if (datos.formaDePago === 'tarjeta') {
     return `
@@ -246,6 +259,16 @@ function bloquePago(datos: DatosCorreo): string {
     </p>`
 }
 
+/** Las reservas no llegan con el resto: se dice aparte, corto. */
+function bloqueReserva(datos: DatosCorreo): string {
+  if (!datos.lineas.some((l) => l.reserva)) return ''
+  return `
+    <h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">Tu reserva</h2>
+    <p style="margin:0;line-height:1.5;">
+      Te avisamos cuando llegue, en ${PLAZO_RESERVA}.
+    </p>`
+}
+
 /** Confirmación al cliente, con lo que tiene que hacer según cómo vaya a pagar. */
 export function confirmacionCliente(datos: DatosCorreo): Promise<boolean> {
   if (!datos.cliente.email) return Promise.resolve(false)
@@ -265,6 +288,7 @@ export function confirmacionCliente(datos: DatosCorreo): Promise<boolean> {
       ${tablaLineas(datos.lineas, datos.totalCentimos)}
       <h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">Cómo te llega</h2>
       <p style="margin:0;line-height:1.5;">${TRANSPORTE[datos.transporte]}</p>
+      ${bloqueReserva(datos)}
       ${bloquePago(datos)}
       <p style="margin:24px 0 0;line-height:1.5;color:#6b6a66;">
         Si algo no cuadra, responde a este correo y lo miramos.
@@ -285,7 +309,7 @@ export function avisoEquipo(datos: DatosCorreo & { idPedido: string }): Promise<
   return enviar({
     para: correoEquipo,
     ...(datos.cliente.email ? { responderA: datos.cliente.email } : {}),
-    asunto: `Pedido web de ${datos.cliente.nombre} · ${formatearEuros(datos.totalCentimos)}`,
+    asunto: `${datos.lineas.some((l) => l.reserva) ? 'Reserva · ' : ''}Pedido web de ${datos.cliente.nombre} · ${formatearEuros(datos.totalCentimos)}`,
     html: envoltorio(`
       <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;">Pedido nuevo desde la web</h1>
       <p style="margin:0 0 4px;">
@@ -297,6 +321,7 @@ export function avisoEquipo(datos: DatosCorreo & { idPedido: string }): Promise<
       <p style="margin:16px 0 0;line-height:1.5;">
         <strong>Pago:</strong> ${PAGO_EQUIPO[datos.formaDePago]}
       </p>
+      ${datos.lineas.some((l) => l.reserva) ? `<p style="margin:8px 0 0;line-height:1.5;"><strong>Reserva:</strong> hay líneas sin stock que se encargan aparte. Avisarle cuando lleguen (${PLAZO_RESERVA}).</p>` : ''}
       <p style="margin:8px 0 0;line-height:1.5;">
         <strong>Transporte:</strong> ${datos.transporte === 'consolacion' ? 'Consolación (gratis)' : 'Mensajería urgente — hay que presupuestar y añadir la línea'}
       </p>

@@ -1,7 +1,7 @@
 import { errorDeValidacion, esquemaPedido } from '../pedidos.post'
 import { eventoActivo } from '../../../shared/utils/eventos'
 import { limitarPeticiones } from '../../utils/limite'
-import { prepararLineas } from '../../utils/pedido'
+import { comprobarReserva, prepararLineas } from '../../utils/pedido'
 import { numeroPedidoRedsys, prepararPago } from '../../utils/redsys'
 import { leerSesion } from '../../utils/sesion'
 
@@ -31,7 +31,9 @@ export default defineEventHandler(async (event) => {
 
   // El importe se calcula en el servidor releyendo el catálogo. Es lo único que
   // impide que alguien pague 1 céntimo por una sudadera editando la petición.
-  const { totalCentimos } = await prepararLineas(datos.lineas, datos.transporte)
+  const { totalCentimos, hayReserva } = await prepararLineas(datos.lineas, datos.transporte)
+  // Antes de mandar al banco: después, el cobro ya estaría hecho.
+  comprobarReserva(hayReserva, datos, 'tarjeta')
 
   if (totalCentimos <= 0) {
     throw createError({

@@ -470,6 +470,14 @@ lo que va a pasar dicho antes de que pase.
   tarjeta de evento salía rosado).
 - **Entrada en cascada de las tarjetas del catálogo** (`animation-delay` inline por tarjeta).
   El `keyframe` vive en el CSS global, el escalonado en el componente.
+- **El Silent Merch lleva tarjeta de tinta** (`.mcm-silent` en `main.css`): casi negra y
+  la misma en claro y en oscuro, con un filete interior de etiqueta y la marca en
+  mayúsculas espaciadas. Redefine los tokens dentro de la tarjeta, así que lo de dentro
+  se adapta solo. Movimiento: sube al llegar y un brillo la cruza una vez (y otra al
+  pasar el ratón), el mismo gesto que la entrada de evento. Sin glow ni degradado de
+  fondo. **Es para esa colección; no lo copies a otras tarjetas.**
+- **La reserva es un sello de tinta pequeño** ("Reserva"), no un aviso naranja: no es un
+  problema, es otra forma de comprar.
 - **El carrito es una barra inferior en móvil**, y el `body` lleva `padding-bottom` para que
   no tape el último producto.
 - **El catálogo no se cachea en el CDN** aunque parezca desperdicio: la ISR guarda una copia

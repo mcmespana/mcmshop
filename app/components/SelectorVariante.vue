@@ -44,6 +44,16 @@ const modoMuestra = computed(
 
 const colorElegido = ref<string | null>(null)
 
+/**
+ * Lo reservable se puede pedir sin stock, así que no se tacha: tachado se lee
+ * "no se puede", y aquí sí se puede. La tarjeta ya dice que es una reserva.
+ */
+const reservable = computed(() => esReservable(props.producto))
+const agotado = (stock: number) => stock <= 0 && !reservable.value
+
+/** Con un solo color no hay nada que elegir: la fila sólo ocuparía sitio. */
+const variosColores = computed(() => colores.value.length > 1)
+
 watchEffect(() => {
   if (props.producto.eje !== 'mixto' || colorElegido.value !== null) return
   colorElegido.value = (colores.value.find((c) => c.stock > 0) ?? colores.value[0])?.nombre ?? null
@@ -87,14 +97,20 @@ function textoOpcion(v: VarianteCatalogo): string {
 }
 
 function rotuloColor(c: GrupoColor): string {
-  return c.stock > 0 ? c.nombre : `${c.nombre} — sin stock`
+  if (c.stock > 0) return c.nombre
+  return reservable.value ? `${c.nombre} — reserva` : `${c.nombre} — sin stock`
+}
+
+function rotuloOpcion(v: VarianteCatalogo): string {
+  if (v.stock > 0) return `${v.etiqueta} — quedan ${v.stock}`
+  return reservable.value ? `${v.etiqueta} — reserva` : AVISO_SIN_STOCK
 }
 </script>
 
 <template>
   <div v-if="producto.variantes.length > 0" class="space-y-3">
     <!-- Colores -->
-    <div v-if="producto.eje === 'mixto'">
+    <div v-if="producto.eje === 'mixto' && variosColores">
       <div class="mb-1.5 flex items-baseline justify-between gap-2">
         <p class="text-xs font-medium text-muted-foreground">Color</p>
         <p class="truncate text-xs text-foreground">{{ colorElegido }}</p>
@@ -120,7 +136,7 @@ function rotuloColor(c: GrupoColor): string {
         >
           <!-- Sin stock: aspa fina encima, sin ocultar el color -->
           <svg
-            v-if="color.stock <= 0"
+            v-if="agotado(color.stock)"
             viewBox="0 0 24 24"
             class="absolute inset-0 size-full text-white/90 mix-blend-difference"
             aria-hidden="true"
@@ -143,7 +159,7 @@ function rotuloColor(c: GrupoColor): string {
             colorElegido === color.nombre
               ? 'border-primary bg-primary/10 font-medium text-primary-hover'
               : 'border-border text-muted-foreground hover:border-muted-foreground',
-            color.stock <= 0 ? 'line-through decoration-from-font' : '',
+            agotado(color.stock) ? 'line-through decoration-from-font' : '',
           ]"
           @click="colorElegido = color.nombre"
         >
@@ -167,13 +183,13 @@ function rotuloColor(c: GrupoColor): string {
           :key="opcion.id"
           type="button"
           :aria-pressed="seleccion?.id === opcion.id"
-          :title="opcion.stock > 0 ? `${opcion.etiqueta} — quedan ${opcion.stock}` : AVISO_SIN_STOCK"
+          :title="rotuloOpcion(opcion)"
           class="min-w-9 rounded-lg border px-2.5 py-1.5 text-sm transition"
           :class="[
             seleccion?.id === opcion.id
               ? 'border-primary bg-primary/10 font-semibold text-primary-hover'
               : 'border-border hover:border-muted-foreground',
-            opcion.stock <= 0 ? 'text-muted-foreground line-through decoration-from-font' : '',
+            agotado(opcion.stock) ? 'text-muted-foreground line-through decoration-from-font' : '',
           ]"
           @click="seleccion = opcion"
         >

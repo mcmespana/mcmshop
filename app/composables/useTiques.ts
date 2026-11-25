@@ -15,6 +15,8 @@ export interface LineaTique {
   variante: string | null
   cantidad: number
   precioCentimos: number
+  /** Reservado: no está en el puesto, no se entrega hoy. */
+  reserva?: boolean
 }
 
 /** `tarjeta` es online por Redsys; `datafono`, la tarjeta pasada en el puesto. */

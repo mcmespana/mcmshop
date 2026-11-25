@@ -7,12 +7,15 @@
  * bien y se le vacía el carrito. Por eso el texto no promete "pedido confirmado"
  * de forma tajante: si algo hubiera fallado por detrás, el equipo lo ve y avisa.
  */
-const { vaciar } = useCarrito()
+const { vaciar, hayReserva } = useCarrito()
+/** Se mira antes de vaciar el carrito, que es de donde sale. */
+const conReserva = ref(false)
 const { evento } = useEvento()
 const { tiques, cargar } = useTiques()
 const ruta = useRoute()
 
 onMounted(() => {
+  conReserva.value = hayReserva.value
   vaciar()
   // En el puesto, lo que hay que enseñar es el tique, no esta pantalla: se
   // guardó antes de ir al banco y allí se espera a que el cobro se confirme.
@@ -36,6 +39,15 @@ useSeoMeta({ title: 'Pago recibido' })
       <p v-else class="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
         Gracias. Te llega un correo con el detalle del pedido. Si has elegido mensajería, te
         confirmamos el coste del envío antes de mandar nada.
+      </p>
+
+      <p v-if="conReserva" class="mx-auto mt-4 flex max-w-sm items-center justify-center gap-2 text-sm">
+        <span
+          class="shrink-0 rounded-sm bg-foreground px-1.5 py-px text-[10px] font-semibold tracking-wide text-card uppercase"
+        >
+          Reserva
+        </span>
+        Te avisamos cuando llegue, en {{ PLAZO_RESERVA }}.
       </p>
 
       <div class="mx-auto mt-6 max-w-sm text-left">

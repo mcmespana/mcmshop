@@ -1,5 +1,6 @@
 import { obtenerCatalogo } from '../../utils/catalogo'
 import { exigirTpv } from '../../utils/tpv'
+import { ordenarPorCategoria } from '../../../shared/utils/categorias'
 
 /**
  * Catálogo del TPV: todo lo que se vende, a delegaciones o a particulares.
@@ -19,5 +20,6 @@ export default defineEventHandler(async (event) => {
         p.tags.some((t) => ['b2b', 'b2c'].includes(t.trim().toLowerCase())),
       )
 
-  return { productos, generadoEn: catalogo.generadoEn }
+  // En el puesto se vende sobre todo a particulares: su orden, Silent Merch delante.
+  return { productos: ordenarPorCategoria(productos, 'b2c'), generadoEn: catalogo.generadoEn }
 })

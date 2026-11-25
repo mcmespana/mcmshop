@@ -21,7 +21,15 @@ const subtotal = computed(() => props.linea.precioCentimos * props.linea.cantida
 
     <div class="min-w-0 flex-1">
       <p class="truncate text-sm font-medium">{{ linea.nombre }}</p>
-      <p v-if="linea.variante" class="truncate text-xs text-muted-foreground">{{ linea.variante }}</p>
+      <p v-if="linea.variante || linea.reserva" class="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span
+          v-if="linea.reserva"
+          class="shrink-0 rounded-sm bg-foreground px-1.5 py-px text-[10px] font-semibold tracking-wide text-card uppercase"
+        >
+          Reserva
+        </span>
+        <span v-if="linea.variante" class="truncate">{{ linea.variante }}</span>
+      </p>
 
       <div class="mt-1.5 flex items-center gap-2">
         <div class="flex items-center rounded-md border border-border">

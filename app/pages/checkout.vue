@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PagoTique, Tique } from '~/composables/useTiques'
 
-const { lineas, totalCentimos, unidades, vacio, vaciar } = useCarrito()
+const { lineas, totalCentimos, unidades, vacio, vaciar, hayReserva } = useCarrito()
 const { modo, delegacion, proponer } = useModo()
 const { evento } = useEvento()
 const { guardar: guardarTique } = useTiques()
@@ -23,6 +23,8 @@ const formulario = reactive({
   fechaLimite: '',
   // Marcada de salida por decisión del equipo. Ver la nota bajo la casilla.
   proteccionDatos: true,
+  /** En el puesto, con algo reservado: un correo o un teléfono para avisar. */
+  contactoReserva: '',
 })
 
 const sinFechaConcreta = ref(false)
@@ -86,6 +88,8 @@ const error = ref<string | null>(null)
 const pedidoHecho = ref(false)
 /** El total, guardado antes de vaciar el carrito: en el puesto es lo que hay que cobrar. */
 const importePedido = ref(0)
+/** Si el pedido llevaba reservas, guardado también antes de vaciar. */
+const pedidoConReserva = ref(false)
 
 /**
  * Cómo se paga:
@@ -93,7 +97,7 @@ const importePedido = ref(0)
  *  - B2C: bizum, transferencia o tarjeta, las tres a la vista.
  *  - B2B: transferencia por delante; bizum y tarjeta viven en "otros métodos".
  */
-type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | 'datafono'
+type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | 'datafono' | 'pendiente'
 function pagoPorDefecto(): FormaDePago {
   if (evento.value) return 'efectivo'
   return modo.value === 'b2b' ? 'transferencia' : 'bizum'
@@ -104,6 +108,25 @@ watch([modo, evento], () => {
   formaDePago.value = pagoPorDefecto()
   otrosMetodosAbierto.value = false
 })
+
+/**
+ * Reservar sin pagar: existe para casos concretos, así que no es una opción
+ * más entre las otras sino un enlace pequeño debajo. Lo normal es pagar.
+ * En el puesto no se ofrece: ahí se paga en el momento, que es lo que se traza.
+ */
+const puedePagarLuego = computed(() => hayReserva.value && !evento.value)
+function pagarLuego() {
+  formaDePago.value = 'pendiente'
+}
+function pagarAhora() {
+  formaDePago.value = pagoPorDefecto()
+}
+watch(puedePagarLuego, (v) => {
+  if (!v && formaDePago.value === 'pendiente') pagarAhora()
+})
+
+/** En el puesto el contacto de la reserva es un solo campo: si lleva @, es un correo. */
+const contactoReservaEsCorreo = computed(() => formulario.contactoReserva.includes('@'))
 
 /** En un puesto no hay envío: se entrega en mano. */
 const transporte = computed(() => (evento.value ? ('en-mano' as const) : formulario.transporte))
@@ -127,9 +150,15 @@ function datosComunes() {
       cantidad: l.cantidad,
     })),
     cliente: {
-      email: formulario.email || undefined,
+      email:
+        formulario.email ||
+        (evento.value && contactoReservaEsCorreo.value ? formulario.contactoReserva.trim() : '') ||
+        undefined,
       nombre: formulario.nombre,
-      telefono: formulario.telefono || undefined,
+      telefono:
+        formulario.telefono ||
+        (evento.value && !contactoReservaEsCorreo.value ? formulario.contactoReserva.trim() : '') ||
+        undefined,
       cif: formulario.cif || undefined,
       // En el puesto no se pide dirección; si quedó una de otra visita, no se manda.
       ...(evento.value
@@ -220,6 +249,7 @@ async function enviar() {
     }
 
     importePedido.value = totalCentimos.value
+    pedidoConReserva.value = hayReserva.value
     pedidoHecho.value = true
     vaciar()
   } catch (e) {
@@ -243,6 +273,7 @@ function tiqueDelCarrito(extra: Pick<Tique, 'numero' | 'estado' | 'totalCentimos
       variante: l.variante,
       cantidad: l.cantidad,
       precioCentimos: l.precioCentimos,
+      reserva: l.reserva,
     })),
     pago: formaDePago.value as PagoTique,
     creadoEn: new Date().toISOString(),
@@ -269,6 +300,18 @@ useSeoMeta({ title: 'Finalizar pedido' })
         <template v-if="formulario.transporte === 'mensajeria'">
           y te confirmamos el coste del envío antes de mandar nada.
         </template>
+      </p>
+
+      <p
+        v-if="pedidoConReserva"
+        class="mx-auto mt-4 flex max-w-sm items-center justify-center gap-2 text-sm"
+      >
+        <span
+          class="shrink-0 rounded-sm bg-foreground px-1.5 py-px text-[10px] font-semibold tracking-wide text-card uppercase"
+        >
+          Reserva
+        </span>
+        Te avisamos cuando llegue, en {{ PLAZO_RESERVA }}.
       </p>
 
       <div class="mx-auto mt-6 max-w-sm text-left">
@@ -457,15 +500,52 @@ useSeoMeta({ title: 'Finalizar pedido' })
         </div>
       </section>
 
-      <section v-if="evento" class="rounded-xl border border-border bg-card p-4">
-        <h2 class="font-medium">Te lo llevas ahora</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Sin envío: te lo damos en mano en el puesto en cuanto confirmes.
-        </p>
+      <section v-if="evento" class="space-y-3 rounded-xl border border-border bg-card p-4">
+        <div>
+          <h2 class="font-medium">Te lo llevas ahora</h2>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Sin envío: te lo damos en mano en el puesto en cuanto confirmes.
+          </p>
+        </div>
+
+        <!-- Lo reservado no está en el puesto: hace falta cómo avisar -->
+        <div v-if="hayReserva" class="rounded-lg border border-foreground/15 bg-background p-3">
+          <p class="flex items-center gap-2 text-sm font-medium">
+            <span
+              class="rounded-sm bg-foreground px-1.5 py-px text-[10px] font-semibold tracking-wide text-card uppercase"
+            >
+              Reserva
+            </span>
+            Pagas ahora, te avisamos cuando llegue.
+          </p>
+          <label class="mt-3 block">
+            <span class="mb-1 block text-xs text-muted-foreground">Teléfono o correo para avisarte</span>
+            <input
+              v-model="formulario.contactoReserva"
+              type="text"
+              required
+              autocomplete="tel"
+              inputmode="email"
+              class="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-base outline-none focus:border-primary"
+            />
+          </label>
+        </div>
       </section>
 
       <section v-if="!evento" class="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 class="font-medium">Cómo te lo hacemos llegar</h2>
+
+        <p v-if="hayReserva" class="flex items-start gap-2 text-sm">
+          <span
+            class="mt-0.5 shrink-0 rounded-sm bg-foreground px-1.5 py-px text-[10px] font-semibold tracking-wide text-card uppercase"
+          >
+            Reserva
+          </span>
+          <span>
+            Pagas ahora, te avisamos cuando llegue
+            <span class="text-muted-foreground">({{ PLAZO_RESERVA }}).</span>
+          </span>
+        </p>
 
         <div
           class="rounded-lg border p-3 transition"
@@ -708,6 +788,34 @@ useSeoMeta({ title: 'Finalizar pedido' })
           </div>
         </div>
 
+        <!-- Reservar sin pagar: discreto a propósito, lo normal es pagar -->
+        <div v-if="puedePagarLuego" class="text-xs">
+          <p
+            v-if="formaDePago === 'pendiente'"
+            class="mcm-animar-entrada flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg border border-border bg-background px-3 py-2"
+          >
+            <span>
+              <span class="font-medium">Reservar sin pagar.</span>
+              <span class="text-muted-foreground"> Te escribimos para el pago.</span>
+            </span>
+            <button
+              type="button"
+              class="text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              @click="pagarAhora"
+            >
+              Mejor pago ahora
+            </button>
+          </p>
+          <button
+            v-else
+            type="button"
+            class="text-muted-foreground/80 underline-offset-2 hover:text-foreground hover:underline"
+            @click="pagarLuego"
+          >
+            Prefiero pagar más adelante
+          </button>
+        </div>
+
         <label class="block pt-1">
           <span class="mb-1 block text-xs text-muted-foreground">¿Nos quieres decir algo más?</span>
           <textarea
@@ -747,6 +855,9 @@ useSeoMeta({ title: 'Finalizar pedido' })
         </template>
         <template v-else-if="formaDePago === 'tarjeta'">
           Pagar {{ formatearEuros(totalCentimos) }} con tarjeta
+        </template>
+        <template v-else-if="formaDePago === 'pendiente'">
+          Reservar sin pagar · {{ formatearEuros(totalCentimos) }}
         </template>
         <template v-else> Confirmar pedido · {{ formatearEuros(totalCentimos) }} </template>
       </button>
