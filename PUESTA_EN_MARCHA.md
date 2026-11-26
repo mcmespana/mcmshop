@@ -19,11 +19,21 @@ En cada producto que quieras vender, añade el tag:
 
 Mayúsculas y minúsculas dan igual (`B2B`, `b2b` y ` B2B ` valen lo mismo).
 
-### Tags opcionales: Silent Merch y reservas
+### Tags opcionales: Drops MCM y reservas
 
-- `silentmerch` → la colección Silent Merch: tarjeta especial de tinta, su propia
-  sección, **la primera** para particulares y en el puesto, y **la última** para
-  delegaciones. Lleva la reserva incluida.
+- `drop001` → el producto es del **Drop 001** de los Drops MCM: tarjeta especial de
+  tinta, su propia sección, **la primera** para particulares y en el puesto, y **la
+  última** para delegaciones. Lleva la reserva incluida. El número dice de qué tanda
+  es (`drop002`, `drop003`…) y la sección los pone del más nuevo al más antiguo.
+  - El nombre del drop puede ir pegado al tag: `drop001-esenciales` (Holded lo guarda
+    como `drop001esenciales`) sale como **Drop 001 · Esenciales**. Una sola palabra.
+  - Si el tag no lo trae, se usa el de `NOMBRES_DROP` en `shared/utils/categorias.ts`
+    (hoy, `001` → Esenciales).
+  - `drop` a secas también vale: es un drop sin número.
+  - `silentmerch`, el nombre antiguo, se sigue entendiendo como **Drop 001**, así que
+    no hace falta reetiquetar nada para el cambio de nombre. Lo que sí conviene
+    revisar en Holded es si algún **nombre o descripción de producto** dice todavía
+    "Silent Merch": eso lo escribe Holded, no la tienda.
 - `reserva` → se puede pedir aunque no haya stock. En vez de "Sin stock" sale
   **Reserva** ("Pagas ahora, te avisamos cuando llegue"). El pedido entra en Holded con
   el tag `reserva` y cada línea reservada lleva `RESERVA · talla` en la descripción,
@@ -34,8 +44,12 @@ Con reservas en el carrito aparece un enlace discreto, "Prefiero pagar más adel
 que crea el pedido con `pago-pendiente`. En el puesto no se ofrece: ahí se paga en el
 momento, y lo reservado pide un teléfono o correo para avisar.
 
-Las secciones del catálogo salen del nombre (pañuelos, camisetas, sudaderas, otros), en
-ese orden.
+Las categorías salen del nombre (pañuelos, camisetas, sudaderas, otros). Arriba, en los
+chips para filtrar, camisetas y sudaderas van separadas; abajo, en las secciones, van
+juntas en **Camisetas y sudaderas**. El orden de las secciones:
+
+- Particulares (y el puesto): Drops MCM → camisetas y sudaderas → pañuelos → otros.
+- Delegaciones: pañuelos → camisetas y sudaderas → otros → Drops MCM.
 
 Mientras pruebas, `NUXT_CATALOGO_SIN_FILTRO=true` se salta el filtro y muestra todo.
 **En producción tiene que quedar en `false`.**

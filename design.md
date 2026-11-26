@@ -470,12 +470,19 @@ lo que va a pasar dicho antes de que pase.
   tarjeta de evento salía rosado).
 - **Entrada en cascada de las tarjetas del catálogo** (`animation-delay` inline por tarjeta).
   El `keyframe` vive en el CSS global, el escalonado en el componente.
-- **El Silent Merch lleva tarjeta de tinta** (`.mcm-silent` en `main.css`): casi negra y
+- **Los Drops MCM llevan tarjeta de tinta** (`.mcm-drop` en `main.css`): casi negra y
   la misma en claro y en oscuro, con un filete interior de etiqueta y la marca en
   mayúsculas espaciadas. Redefine los tokens dentro de la tarjeta, así que lo de dentro
-  se adapta solo. Movimiento: sube al llegar y un brillo la cruza una vez (y otra al
-  pasar el ratón), el mismo gesto que la entrada de evento. Sin glow ni degradado de
-  fondo. **Es para esa colección; no lo copies a otras tarjetas.**
+  se adapta solo. Movimiento, todo con el concepto "drop" y nada en bucle: la tarjeta
+  **cae** en su sitio (viene de arriba, las demás suben), un **telón** de tinta tapa la
+  foto y cae descubriéndola (un panel con `transform`, no `clip-path`), y cuando ya se
+  ve, un brillo la cruza una vez (y otra al pasar el ratón). En la cabecera de la
+  sección, el número del drop entra **cifra a cifra**, como un marcador. Sin glow ni
+  degradado de fondo. **Es para los drops; no lo copies a otras tarjetas.**
+- **Camisetas y sudaderas: separadas en los chips, juntas en las secciones.** Con dos o
+  tres productos de cada, dos secciones quedaban cojas. Filtrar sí separa.
+- **Las tarjetas normales del catálogo no se levantan al pasar el ratón** (§5.3): borde
+  y sombra, sin `-translate-y`.
 - **La reserva es un sello de tinta pequeño** ("Reserva"), no un aviso naranja: no es un
   problema, es otra forma de comprar.
 - **El carrito es una barra inferior en móvil**, y el `body` lleva `padding-bottom` para que

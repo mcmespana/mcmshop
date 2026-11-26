@@ -31,39 +31,78 @@ function normalizar(texto: string): string {
 }
 
 /**
- * Categorías del catálogo: Silent Merch por tag, el resto por el nombre del
+ * Categorías del catálogo: los drops por tag, el resto por el nombre del
  * producto (ver shared/utils/categorias.ts). El servidor ya manda los
- * productos ordenados por sección, en el orden de cada público.
+ * productos ordenados, en el orden de cada público.
  */
 const ICONOS: Record<IdCategoria, Component> = {
-  silentmerch: IconoCamiseta,
+  drop: IconoCamiseta,
   panuelo: IconoPanuelo,
   camiseta: IconoCamiseta,
   sudadera: IconoSudadera,
   otros: IconoOtros,
 }
 
+/** Icono de la cabecera de cada sección (la de los drops no lleva: lleva la marca). */
+const ICONOS_SECCION: Record<Exclude<IdSeccion, 'drop'>, Component> = {
+  panuelo: IconoPanuelo,
+  ropa: IconoCamiseta,
+  otros: IconoOtros,
+}
+
 const categoria = ref<IdCategoria | null>(null)
 
-/** Las secciones con lo que hay en cada una, en el orden en que llegan. */
+interface GrupoDrop {
+  clave: string
+  info: InfoDrop
+  productos: ProductoCatalogo[]
+}
+
+/**
+ * Las secciones con lo que hay en cada una, en el orden en que llegan. Camisetas
+ * y sudaderas comparten sección (ver seccionDe). La de los drops, además, va
+ * partida por drop: cada tanda con su número.
+ */
 const secciones = computed(() => {
-  const grupos = new Map<IdCategoria, { categoria: Categoria; productos: ProductoCatalogo[] }>()
+  const grupos = new Map<IdSeccion, { seccion: Seccion; productos: ProductoCatalogo[]; drops: GrupoDrop[] }>()
   for (const p of data.value?.productos ?? []) {
-    const c = categoriaDe(p)
-    if (!grupos.has(c.id)) grupos.set(c.id, { categoria: c, productos: [] })
-    grupos.get(c.id)!.productos.push(p)
+    const sec = seccionDe(categoriaDe(p).id)
+    if (!grupos.has(sec.id)) grupos.set(sec.id, { seccion: sec, productos: [], drops: [] })
+    const g = grupos.get(sec.id)!
+    g.productos.push(p)
+    if (sec.id === 'drop') {
+      const info = dropDe(p) ?? { numero: null, nombre: null }
+      const clave = info.numero ?? '—'
+      let d = g.drops.find((x) => x.clave === clave)
+      if (!d) g.drops.push((d = { clave, info, productos: [] }))
+      if (!d.info.nombre && info.nombre) d.info = info
+      d.productos.push(p)
+    }
   }
   return [...grupos.values()]
 })
 
-const categoriasConTotal = computed(() =>
-  secciones.value.map((s) => ({
-    id: s.categoria.id,
-    etiqueta: s.categoria.etiqueta,
-    icono: ICONOS[s.categoria.id],
-    total: s.productos.length,
-  })),
-)
+/** Los chips sí separan camisetas de sudaderas: para filtrar es lo útil. */
+const categoriasConTotal = computed(() => {
+  const totales = new Map<IdCategoria, number>()
+  for (const p of data.value?.productos ?? []) {
+    const id = categoriaDe(p).id
+    totales.set(id, (totales.get(id) ?? 0) + 1)
+  }
+  return ordenDeCategorias(modo.value)
+    .filter((id) => totales.has(id))
+    .map((id) => ({
+      id,
+      etiqueta: categoriaPorId(id).etiqueta,
+      icono: ICONOS[id],
+      total: totales.get(id)!,
+    }))
+})
+
+/** "001" → ["0", "0", "1"], para que cada cifra entre por su cuenta. */
+function cifras(numero: string | null): string[] {
+  return (numero ?? '').split('')
+}
 
 const productos = computed(() => {
   let lista = data.value?.productos ?? []
@@ -113,7 +152,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', alPulsar))
 
 useSeoMeta({
   title: 'Catálogo',
-  description: 'Silent Merch, camisetas, sudaderas y pañuelos del Movimiento Consolación para el Mundo.',
+  description: 'Drops MCM, camisetas, sudaderas y pañuelos del Movimiento Consolación para el Mundo.',
 })
 </script>
 
@@ -162,9 +201,9 @@ useSeoMeta({
             :aria-pressed="categoria === c.id"
             class="group flex items-center gap-2 rounded-full border py-1 pr-3.5 pl-1.5 text-sm transition"
             :class="
-              c.id === 'silentmerch'
+              c.id === 'drop'
                 ? categoria === c.id
-                  ? 'mcm-silent border-transparent pl-3.5 font-medium'
+                  ? 'mcm-drop border-transparent pl-3.5 font-medium'
                   : 'border-foreground/70 pl-3.5 font-medium text-foreground hover:border-foreground'
                 : categoria === c.id
                   ? 'border-primary bg-primary/10 font-medium text-primary-hover'
@@ -174,11 +213,11 @@ useSeoMeta({
           >
             <component
               :is="c.icono"
-              v-if="c.id !== 'silentmerch'"
+              v-if="c.id !== 'drop'"
               :activo="categoria === c.id"
               class="size-6"
             />
-            <span v-if="c.id === 'silentmerch'" class="mcm-silent-marca text-[11px]">{{ c.etiqueta }}</span>
+            <span v-if="c.id === 'drop'" class="mcm-drop-marca text-[11px]">{{ c.etiqueta }}</span>
             <template v-else>{{ c.etiqueta }}</template>
             <span class="text-xs text-muted-foreground">{{ c.total }}</span>
           </button>
@@ -215,36 +254,74 @@ useSeoMeta({
           </p>
         </div>
 
-        <!-- Por secciones: pañuelos, camisetas, sudaderas… y el Silent Merch con su cabecera -->
-        <div v-else-if="porSecciones" class="space-y-9">
-          <section v-for="s in secciones" :key="s.categoria.id" :aria-labelledby="`seccion-${s.categoria.id}`">
-            <header v-if="s.categoria.id === 'silentmerch'" class="mb-4">
-              <div class="flex items-center gap-3">
-                <h2 :id="`seccion-${s.categoria.id}`" class="mcm-silent-marca shrink-0 text-sm">
-                  Silent Merch
-                </h2>
-                <span class="mcm-silent-raya h-px flex-1 bg-foreground/25" aria-hidden="true" />
+        <!--
+          Por secciones. Particulares: drops, camisetas y sudaderas, pañuelos, otros.
+          Delegaciones: pañuelos, camisetas y sudaderas, otros, drops.
+        -->
+        <div v-else-if="porSecciones" class="space-y-10">
+          <section v-for="s in secciones" :key="s.seccion.id" :aria-labelledby="`seccion-${s.seccion.id}`">
+            <template v-if="s.seccion.id === 'drop'">
+              <header class="mb-5">
+                <div class="flex items-center gap-3">
+                  <h2 :id="`seccion-${s.seccion.id}`" class="mcm-drop-marca shrink-0 text-sm">
+                    Drops MCM
+                  </h2>
+                  <span class="mcm-drop-raya h-px flex-1 bg-foreground/25" aria-hidden="true" />
+                </div>
+                <p class="mt-1.5 text-sm text-muted-foreground">
+                  Colecciones que salen por tandas. Para llevar el movimiento cualquier día.
+                </p>
+              </header>
+
+              <div class="space-y-8">
+                <div v-for="d in s.drops" :key="d.clave">
+                  <!--
+                    El número del drop entra cifra a cifra, como un marcador: es lo que
+                    dice "esto es una tanda" sin explicarlo.
+                  -->
+                  <h3 v-if="d.info.numero" class="mb-3 flex items-center gap-2.5">
+                    <span class="mcm-drop-sello">Drop</span>
+                    <span class="mcm-drop-numero text-2xl leading-none font-semibold tabular-nums" :aria-label="d.info.numero">
+                      <span
+                        v-for="(c, i) in cifras(d.info.numero)"
+                        :key="i"
+                        class="mcm-drop-cifra"
+                        aria-hidden="true"
+                      ><span :style="{ animationDelay: `${180 + i * 70}ms` }">{{ c }}</span></span>
+                    </span>
+                    <span v-if="d.info.nombre" class="mcm-drop-nombre text-sm text-muted-foreground">
+                      {{ d.info.nombre }}
+                    </span>
+                  </h3>
+                  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <TarjetaProducto
+                      v-for="p in d.productos"
+                      :key="p.id"
+                      :producto="p"
+                      :indice="indiceDe.get(p.id) ?? 0"
+                    />
+                  </div>
+                </div>
               </div>
-              <p class="mt-1.5 text-sm text-muted-foreground">
-                Para llevar el movimiento cualquier día.
-              </p>
-            </header>
-            <h2
-              v-else
-              :id="`seccion-${s.categoria.id}`"
-              class="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"
-            >
-              <component :is="ICONOS[s.categoria.id]" class="size-5" />
-              {{ s.categoria.etiqueta }}
-            </h2>
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <TarjetaProducto
-                v-for="p in s.productos"
-                :key="p.id"
-                :producto="p"
-                :indice="indiceDe.get(p.id) ?? 0"
-              />
-            </div>
+            </template>
+
+            <template v-else>
+              <h2
+                :id="`seccion-${s.seccion.id}`"
+                class="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"
+              >
+                <component :is="ICONOS_SECCION[s.seccion.id]" class="size-5" />
+                {{ s.seccion.etiqueta }}
+              </h2>
+              <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <TarjetaProducto
+                  v-for="p in s.productos"
+                  :key="p.id"
+                  :producto="p"
+                  :indice="indiceDe.get(p.id) ?? 0"
+                />
+              </div>
+            </template>
           </section>
         </div>
 

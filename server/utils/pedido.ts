@@ -43,7 +43,7 @@ export type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | '
  *            pago-datafono (tarjeta en el puesto) · pago-transferencia · pago-pendiente
  *   cobro    cobrado · sin-cobrar   (sólo cuando se sabe: tarjeta, o lo marca el TPV)
  *   entrega  entregado · reservado  (sólo el TPV, que es quien lo sabe)
- *   reserva  reserva               (lleva algo que se encarga sin stock: Silent Merch…)
+ *   reserva  reserva               (lleva algo que se encarga sin stock: un drop…)
  *
  * Holded quita los guiones al guardar: `pago-efectivo` aparece como `pagoefectivo`.
  */
