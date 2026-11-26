@@ -676,21 +676,30 @@ input[type='checkbox'] {
 }
 
 /*
-  ── Silent Merch (TarjetaProducto.vue, sección del catálogo) ────────────────
-  La colección de "camiseta del movimiento que te pondrías cualquier día", así
-  que no puede parecer una camiseta más del armario. La tarjeta es de tinta:
-  casi negra, cálida, la misma en claro y en oscuro (una etiqueta negra no se
-  invierte), con un filete fino por dentro como el de una etiqueta cosida.
+  ── Drops MCM (TarjetaProducto.vue, sección del catálogo) ───────────────────
+  Las colecciones que salen por tandas —Drop 001, Drop 002…—: "la camiseta del
+  movimiento que te pondrías cualquier día", así que no pueden parecer una
+  camiseta más del armario. La tarjeta es de tinta: casi negra, cálida, la misma
+  en claro y en oscuro (una etiqueta negra no se invierte), con un filete fino
+  por dentro como el de una etiqueta cosida.
 
   Nada de degradado de fondo ni glow (design.md §5): lo premium sale del
-  material oscuro, del espaciado de la marca y de un solo brillo que cruza la
-  tarjeta al llegar y al pasar el ratón — el mismo gesto que la entrada de
-  evento de la bienvenida, que es la otra cosa "especial" de la tienda.
+  material oscuro, del espaciado de la marca y de muy poco movimiento, todo con
+  un sentido:
+
+    1. La tarjeta CAE en su sitio (viene de arriba, no de abajo como las demás):
+       es un drop.
+    2. La foto está tapada por la tinta y el telón cae, descubriéndola. Sólo
+       transform: se anima un panel, no un clip-path.
+    3. Cuando ya se ve la foto, un brillo cruza la tarjeta una vez (y otra al
+       pasar el ratón) — el mismo gesto que la entrada de evento de la bienvenida.
+
+  En la cabecera, el número del drop entra cifra a cifra, como un marcador.
 
   Los tokens se redefinen dentro de la tarjeta, así que todo lo que va dentro
-  (selector de talla, botones, la silueta sin foto) se adapta sin tocarlo.
+  (selector de talla, botones, la ficha sin foto) se adapta sin tocarlo.
 */
-.mcm-silent {
+.mcm-drop {
   --color-background: oklch(0.2 0.006 70);
   --color-card: oklch(0.16 0.006 70);
   --color-border: oklch(0.34 0.008 70);
@@ -709,12 +718,12 @@ input[type='checkbox'] {
   transition: border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.mcm-silent:hover {
+.mcm-drop:hover {
   border-color: oklch(0.55 0.01 80);
 }
 
 /* Filete interior: una línea fina a 5 px del borde, como una etiqueta. */
-.mcm-silent::after {
+.mcm-drop::after {
   content: '';
   position: absolute;
   inset: 5px;
@@ -725,70 +734,17 @@ input[type='checkbox'] {
 }
 
 /* El texto de la marca: espaciado ancho y en mayúsculas, que es lo que la hace marca. */
-.mcm-silent-marca {
+.mcm-drop-marca {
   font-weight: 650;
   letter-spacing: 0.32em;
   text-transform: uppercase;
 }
 
-/*
-  El brillo: una franja que cruza la tarjeta entera, una vez al llegar (con el
-  retraso de la cascada, que se pasa en --retraso) y otra al pasar el ratón.
-  Mismo truco que .mcm-evento-brillo: dos keyframes iguales con distinto nombre
-  para poder repetir sin JavaScript.
-*/
-.mcm-silent-brillo {
-  position: absolute;
-  inset: -10% auto -10% -40%;
-  width: 35%;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(
-    100deg,
-    transparent,
-    oklch(1 0 0 / 0.13),
-    transparent
-  );
-  opacity: 0;
-  transform: translateX(0) skewX(-14deg);
-  animation: mcm-brillo-silent 1100ms cubic-bezier(0.77, 0, 0.175, 1) both;
-  animation-delay: calc(var(--retraso, 0ms) + 380ms);
-}
-
-.mcm-silent:hover .mcm-silent-brillo {
-  animation: mcm-brillo-silent-otra 1100ms cubic-bezier(0.77, 0, 0.175, 1) both;
-}
-
-@keyframes mcm-brillo-silent {
-  from {
-    opacity: 1;
-    transform: translateX(0) skewX(-14deg);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(560%) skewX(-14deg);
-  }
-}
-
-@keyframes mcm-brillo-silent-otra {
-  from {
-    opacity: 1;
-    transform: translateX(0) skewX(-14deg);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(560%) skewX(-14deg);
-  }
-}
-
-/*
-  Entrada propia: la tarjeta de tinta sube un poco más despacio que las otras y
-  sin el pequeño zoom, para que se lea "llega" y no "rebota".
-*/
-@keyframes mcm-silent-entrada {
+/* 1. Cae en su sitio: viene de un poco más arriba y frena con la curva de entrar. */
+@keyframes mcm-drop-entrada {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(-18px);
   }
   to {
     opacity: 1;
@@ -796,17 +752,95 @@ input[type='checkbox'] {
   }
 }
 
-.mcm-silent-entrada {
-  animation: mcm-silent-entrada 560ms cubic-bezier(0.23, 1, 0.32, 1) both;
+.mcm-drop-entrada {
+  animation: mcm-drop-entrada 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/*
+  2. El telón: un panel de tinta encima de la foto que cae hacia abajo y se va.
+  Arranca cuando la tarjeta ya casi ha llegado (--retraso + 160 ms) y usa la
+  curva de cajón, que es la de algo que se desliza desde un borde.
+*/
+.mcm-drop-telon {
+  position: absolute;
+  inset: 0;
+  z-index: 25; /* por encima de los puntos de la galería y de los sellos: los descubre */
+  pointer-events: none;
+  background-color: var(--color-card);
+  transform: translateY(101%);
+  animation: mcm-drop-telon 620ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation-delay: calc(var(--retraso, 0ms) + 160ms);
+}
+
+/* El borde de abajo del telón lleva el filete de la etiqueta: se ve caer una línea. */
+.mcm-drop-telon::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background-color: oklch(1 0 0 / 0.18);
+}
+
+@keyframes mcm-drop-telon {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(101%);
+  }
+}
+
+/*
+  3. El brillo: una franja que cruza la tarjeta entera, una vez cuando el telón
+  ya ha caído y otra al pasar el ratón. Mismo truco que .mcm-evento-brillo: dos
+  keyframes iguales con distinto nombre para poder repetir sin JavaScript.
+*/
+.mcm-drop-brillo {
+  position: absolute;
+  inset: -10% auto -10% -40%;
+  width: 35%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, oklch(1 0 0 / 0.13), transparent);
+  opacity: 0;
+  transform: translateX(0) skewX(-14deg);
+  animation: mcm-brillo-drop 1100ms cubic-bezier(0.77, 0, 0.175, 1) both;
+  animation-delay: calc(var(--retraso, 0ms) + 640ms);
+}
+
+.mcm-drop:hover .mcm-drop-brillo {
+  animation: mcm-brillo-drop-otra 1100ms cubic-bezier(0.77, 0, 0.175, 1) both;
+}
+
+@keyframes mcm-brillo-drop {
+  from {
+    opacity: 1;
+    transform: translateX(0) skewX(-14deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(560%) skewX(-14deg);
+  }
+}
+
+@keyframes mcm-brillo-drop-otra {
+  from {
+    opacity: 1;
+    transform: translateX(0) skewX(-14deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(560%) skewX(-14deg);
+  }
 }
 
 /* Cabecera de la sección: la marca con una raya que se dibuja al llegar. */
-.mcm-silent-raya {
+.mcm-drop-raya {
   transform-origin: left;
-  animation: mcm-silent-raya 700ms 120ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: mcm-drop-raya 700ms 120ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-@keyframes mcm-silent-raya {
+@keyframes mcm-drop-raya {
   from {
     transform: scaleX(0);
   }
@@ -815,9 +849,64 @@ input[type='checkbox'] {
   }
 }
 
+/* "DROP" en un sello de tinta pequeño, el mismo material que la tarjeta. */
+.mcm-drop-sello {
+  border-radius: var(--radius-sm);
+  border: 1px solid oklch(0.34 0.008 70);
+  background-color: oklch(0.16 0.006 70);
+  color: oklch(0.96 0.006 85);
+  padding: 0.3rem 0.45rem 0.3rem 0.6rem;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 650;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+/*
+  El número del drop, cifra a cifra: cada una sube desde debajo de su propia
+  ventana (overflow hidden), con el retraso inline que pone la plantilla.
+*/
+.mcm-drop-cifra {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-block: 0.08em;
+}
+
+.mcm-drop-cifra > span {
+  display: inline-block;
+  animation: mcm-drop-cifra 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes mcm-drop-cifra {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.mcm-drop-nombre {
+  animation: mcm-drop-nombre 260ms 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes mcm-drop-nombre {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  /* Sin brillo: es puro movimiento y no dice nada que no diga ya la tarjeta. */
-  .mcm-silent-brillo {
+  /* Sin brillo ni telón: son puro movimiento y no dicen nada que no diga ya la tarjeta. */
+  .mcm-drop-brillo,
+  .mcm-drop-telon {
     display: none;
   }
 }

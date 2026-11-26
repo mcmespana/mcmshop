@@ -342,10 +342,10 @@ function stockTexto(p: ProductoCatalogo): string {
                 </span>
                 <span class="flex flex-1 flex-col p-3">
                   <span
-                    v-if="esSilentMerch(p)"
-                    class="mcm-silent-marca mb-0.5 text-[9px] text-muted-foreground"
+                    v-if="esDrop(p)"
+                    class="mcm-drop-marca mb-0.5 text-[9px] text-muted-foreground"
                   >
-                    Silent Merch
+                    {{ etiquetaDrop(dropDe(p)) }}
                   </span>
                   <span class="text-sm leading-snug font-medium">{{ p.nombre }}</span>
                   <span class="mt-auto flex items-baseline justify-between gap-2 pt-1.5">

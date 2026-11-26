@@ -20,6 +20,6 @@ export default defineEventHandler(async (event) => {
         p.tags.some((t) => ['b2b', 'b2c'].includes(t.trim().toLowerCase())),
       )
 
-  // En el puesto se vende sobre todo a particulares: su orden, Silent Merch delante.
+  // En el puesto se vende sobre todo a particulares: su orden, los drops delante.
   return { productos: ordenarPorCategoria(productos, 'b2c'), generadoEn: catalogo.generadoEn }
 })

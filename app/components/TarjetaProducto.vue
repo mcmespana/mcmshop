@@ -23,8 +23,9 @@ function bajar() {
   if (cantidad.value > 1) cantidad.value--
 }
 
-/** La colección Silent Merch lleva su propia tarjeta, de tinta (ver main.css). */
-const silent = computed(() => esSilentMerch(props.producto))
+/** Los Drops MCM llevan su propia tarjeta, de tinta (ver main.css). */
+const drop = computed(() => dropDe(props.producto))
+const esDeDrop = computed(() => drop.value !== null)
 
 const precio = computed(() => variante.value?.precioCentimos ?? props.producto.precioCentimos)
 const stock = computed(() => variante.value?.stock ?? props.producto.stock)
@@ -52,45 +53,51 @@ onBeforeUnmount(() => clearTimeout(temporizador))
   <article
     class="group flex flex-col overflow-hidden rounded-xl"
     :class="
-      silent
-        ? 'mcm-silent mcm-silent-entrada'
-        : 'mcm-animar-entrada border border-border bg-card transition hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-lg hover:shadow-foreground/5'
+      esDeDrop
+        ? 'mcm-drop mcm-drop-entrada'
+        : 'mcm-animar-entrada border border-border bg-card transition hover:border-muted-foreground/40 hover:shadow-lg hover:shadow-foreground/5'
     "
     :style="{ animationDelay: retrasoEntrada, '--retraso': retrasoEntrada }"
   >
-    <div v-if="silent" class="mcm-silent-brillo" aria-hidden="true" />
+    <div v-if="esDeDrop" class="mcm-drop-brillo" aria-hidden="true" />
 
-    <div class="relative">
+    <div class="relative" :class="esDeDrop ? 'overflow-hidden' : ''">
       <GaleriaProducto
-        v-if="!silent || producto.imagenes.length > 0"
+        v-if="!esDeDrop || producto.imagenes.length > 0"
         :imagenes="producto.imagenes"
         :alt="producto.nombre"
         :color="color"
       />
       <!--
-        Silent Merch sin foto todavía: la marca en grande, sobre la tinta. Una
-        silueta de camiseta genérica aquí la haría parecer una más del armario.
+        Drop sin foto todavía: el número en grande, sobre la tinta, como la
+        etiqueta de una tanda. Una silueta de camiseta genérica aquí la haría
+        parecer una más del armario.
       -->
       <div
         v-else
-        class="flex aspect-square flex-col items-center justify-center gap-3 bg-background px-6 text-center"
+        class="flex aspect-square flex-col items-center justify-center gap-2 bg-background px-6 text-center"
       >
-        <LogoMCM class="size-10 opacity-90" />
-        <p class="mcm-silent-marca text-base leading-snug">Silent<br />Merch</p>
+        <LogoMCM class="mb-1 size-9 opacity-90" />
+        <p class="mcm-drop-marca text-[11px] text-muted-foreground">Drops MCM</p>
+        <p v-if="drop?.numero" class="text-4xl leading-none font-semibold tabular-nums">{{ drop.numero }}</p>
+        <p v-if="drop?.nombre" class="text-sm text-muted-foreground">{{ drop.nombre }}</p>
       </div>
 
+      <!-- El telón: la tinta tapa la foto y cae al llegar la tarjeta, que es lo que es un drop. -->
+      <div v-if="esDeDrop" class="mcm-drop-telon" aria-hidden="true" />
+
       <span
-        v-if="silent"
-        class="mcm-silent-marca absolute top-3 left-3 z-10 rounded-sm bg-foreground px-2 py-1 text-[10px] leading-none text-card"
+        v-if="esDeDrop"
+        class="mcm-drop-marca absolute top-3 left-3 z-10 rounded-sm bg-card px-2 py-1 text-[10px] leading-none text-foreground tabular-nums ring-1 ring-border"
       >
-        Silent Merch
+        {{ etiquetaDrop(drop) }}
       </span>
 
       <span
         v-if="reserva"
         class="absolute top-3 right-3 z-10 rounded-sm px-2 py-1 text-[11px] leading-none font-semibold tracking-wide uppercase"
         :class="
-          silent
+          esDeDrop
             ? 'bg-card/90 text-foreground ring-1 ring-border'
             : 'bg-foreground text-card'
         "
@@ -104,16 +111,16 @@ onBeforeUnmount(() => clearTimeout(temporizador))
           aviso.tono === 'agotado'
             ? 'bg-warn/15 text-warn ring-1 ring-warn/30'
             : 'bg-card/85 text-muted-foreground ring-1 ring-border',
-          silent ? 'top-10' : '',
+          esDeDrop ? 'top-10' : '',
         ]"
       >
         {{ aviso.texto }}
       </span>
     </div>
 
-    <div class="relative z-[3] flex flex-1 flex-col gap-3" :class="silent ? 'p-4' : 'p-3.5'">
+    <div class="relative z-[3] flex flex-1 flex-col gap-3" :class="esDeDrop ? 'p-4' : 'p-3.5'">
       <div>
-        <h3 class="leading-tight font-medium" :class="silent ? 'text-[1.05rem]' : ''">
+        <h3 class="leading-tight font-medium" :class="esDeDrop ? 'text-[1.05rem]' : ''">
           {{ producto.nombre }}
         </h3>
         <p v-if="producto.descripcion" class="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
