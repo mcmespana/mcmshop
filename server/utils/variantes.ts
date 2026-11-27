@@ -7,6 +7,7 @@
  *   Sudaderas M+C   barcode "Sudadera M+C Talla S"         → talla
  *   Pañuelos MCM    barcode "Pañuelo COM Verde"            → tipo, sin talla
  *   Guías del COM   barcode vacío, sku "CONOC. I"          → edición
+ *   Drops MCM       barcode "DROP001 Azul S", sku "D001-S-AZUL" → color + talla
  *
  * Este módulo saca de ahí una etiqueta legible sin romperse nunca: si nada
  * encaja, devuelve el texto crudo. Un producto nuevo mal rotulado se verá feo,
@@ -88,6 +89,49 @@ function comoTalla(palabra: string): string | null {
   return null
 }
 
+/** Palabra con letras y números pegados, tipo código de tanda: "DROP001", "D001". */
+function esCodigo(palabra: string): boolean {
+  return /^[A-Za-z]*\d+[A-Za-z0-9]*$/.test(palabra)
+}
+
+/** "AZUL" → "Azul". Lo que no va todo en mayúsculas se deja como está. */
+function capitalizar(palabra: string): string {
+  if (palabra !== palabra.toUpperCase() || palabra.length < 4) return palabra
+  return palabra.charAt(0) + palabra.slice(1).toLowerCase()
+}
+
+/**
+ * Lee un SKU con guiones: "D001-S-AZUL" → talla S, color Azul.
+ * Sólo actúa si alguna pieza es una talla; si no ("CHAP-AMA"), devuelve null y
+ * el rótulo sigue el camino normal, para no tocar lo que ya se veía.
+ * Se descartan los códigos con números y las siglas cortas de producto
+ * ("CAM", "MC") que van delante del color.
+ */
+function desdeSku(texto: string): { talla: string; opcion: string | null } | null {
+  if (/\s/.test(texto) || !/[-_]/.test(texto)) return null
+  const piezas = texto.split(/[-_]+/).filter(Boolean)
+
+  let indiceTalla = -1
+  for (let i = piezas.length - 1; i >= 0; i--) {
+    if (comoTalla(piezas[i]!)) {
+      indiceTalla = i
+      break
+    }
+  }
+  if (indiceTalla === -1) return null
+
+  const talla = comoTalla(piezas[indiceTalla]!)!
+  const resto = piezas.filter((_, i) => i !== indiceTalla).filter((p) => !esCodigo(p))
+  while (resto.length > 1 && resto[0]!.length <= 3 && resto[0] === resto[0]!.toUpperCase()) {
+    resto.shift()
+  }
+  if (resto.length === 1 && resto[0]!.length <= 3 && resto[0] === resto[0]!.toUpperCase()) {
+    resto.shift()
+  }
+  const opcion = resto.map(capitalizar).join(' ').trim() || null
+  return { talla, opcion }
+}
+
 interface VarianteHolded {
   id: string
   sku?: string | null
@@ -110,9 +154,23 @@ export function etiquetarVariante(
   }
 
   const { limpio, nota } = extraerNota(bruto)
+
+  // Rótulo con forma de SKU ("D001-S-AZUL"): la talla puede ir en medio.
+  const deSku = desdeSku(limpio)
+  if (deSku) {
+    const etiqueta = [deSku.opcion, deSku.talla].filter(Boolean).join(' · ')
+    const orden = (TALLAS as readonly string[]).indexOf(deSku.talla)
+    return { etiqueta, talla: deSku.talla, opcion: deSku.opcion, nota, orden: orden === -1 ? 500 : orden }
+  }
+
   const sinPrefijo = quitarPrefijo(limpio, nombreProducto) || limpio
 
   const palabras = sinPrefijo.split(/\s+/).filter(Boolean)
+
+  // Fuera los códigos de tanda delante del color: "DROP001 Azul S" → "Azul S".
+  while (palabras.length > 1 && esCodigo(palabras[0]!) && !comoTalla(palabras[0]!)) {
+    palabras.shift()
+  }
 
   // La talla, si la hay, es la última palabra. "Talla S" y "S" valen igual.
   let talla: string | null = null
