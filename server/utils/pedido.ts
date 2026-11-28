@@ -114,6 +114,8 @@ function formatearFecha(iso: string): string {
 export async function prepararLineas(
   lineasPedidas: LineaSolicitada[],
   transporte: SolicitudPedido['transporte'],
+  /** Pedido online (no del puesto ni del TPV): lo reservable se pide siempre como reserva. */
+  soloReserva = false,
 ): Promise<PedidoPreparado> {
   const catalogo = await obtenerCatalogo()
   const porId = new Map(catalogo.productos.map((p) => [p.id, p]))
@@ -148,7 +150,7 @@ export async function prepararLineas(
 
     // Se decide aquí, con el stock de ahora, y no con lo que diga el navegador:
     // si entre medias ha llegado stock, ya no es reserva y se puede mandar.
-    const reserva = esReserva(producto, variante?.stock ?? producto.stock)
+    const reserva = esReserva(producto, variante?.stock ?? producto.stock, soloReserva)
     if (reserva) hayReserva = true
     // En la línea, para que al encargar se vea de un vistazo qué hay que pedir.
     const descripcion = [reserva ? 'RESERVA' : null, variante?.etiqueta ?? null]
@@ -273,6 +275,7 @@ export async function crearPedidoCompleto(
   const { lineas, lineasCorreo, totalCentimos, hayReserva } = await prepararLineas(
     solicitud.lineas,
     solicitud.transporte,
+    !solicitud.evento,
   )
 
   // Con tarjeta ya se comprobó antes de mandar al banco (pago/iniciar): aquí el

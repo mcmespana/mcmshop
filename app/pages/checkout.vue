@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PagoTique, Tique } from '~/composables/useTiques'
 
-const { lineas, totalCentimos, unidades, vacio, vaciar, hayReserva } = useCarrito()
+const { lineas, totalCentimos, unidades, vacio, vaciar, hayReserva, ocultarPrecios } = useCarrito()
 const { modo, delegacion, proponer } = useModo()
 const { evento } = useEvento()
 const { guardar: guardarTique } = useTiques()
@@ -99,6 +99,7 @@ const pedidoConReserva = ref(false)
  */
 type FormaDePago = 'transferencia' | 'bizum' | 'tarjeta' | 'efectivo' | 'datafono' | 'pendiente'
 function pagoPorDefecto(): FormaDePago {
+  if (ocultarPrecios.value) return 'pendiente'
   if (evento.value) return 'efectivo'
   return modo.value === 'b2b' ? 'transferencia' : 'bizum'
 }
@@ -121,6 +122,12 @@ function pagarLuego() {
 function pagarAhora() {
   formaDePago.value = pagoPorDefecto()
 }
+// El carrito se carga del navegador al montar: cuando aparece una reserva, el pago
+// pasa solo a "sin pagar", y si desaparece vuelve a lo normal.
+watch(ocultarPrecios, (v) => {
+  if (v) formaDePago.value = 'pendiente'
+  else if (formaDePago.value === 'pendiente') pagarAhora()
+}, { immediate: true })
 watch(puedePagarLuego, (v) => {
   if (!v && formaDePago.value === 'pendiente') pagarAhora()
 })
@@ -364,8 +371,8 @@ useSeoMeta({ title: 'Finalizar pedido' })
       <div>
         <h1 class="text-xl font-semibold">Finalizar pedido</h1>
         <p class="mt-1 text-sm text-muted-foreground">
-          {{ unidades }} {{ unidades === 1 ? 'unidad' : 'unidades' }} ·
-          {{ formatearEuros(totalCentimos) }}
+          {{ unidades }} {{ unidades === 1 ? 'unidad' : 'unidades' }}
+          <template v-if="!ocultarPrecios">· {{ formatearEuros(totalCentimos) }}</template>
         </p>
       </div>
 
@@ -606,7 +613,15 @@ useSeoMeta({ title: 'Finalizar pedido' })
         </label>
       </section>
 
-      <section class="space-y-3 rounded-xl border border-border bg-card p-4">
+      <section v-if="ocultarPrecios" class="space-y-1 rounded-xl border border-border bg-card p-4">
+        <h2 class="font-medium">Reserva</h2>
+        <p class="text-sm text-muted-foreground">
+          No hay que pagar nada ahora. Te apuntamos la reserva y te escribimos cuando esté lista
+          ({{ PLAZO_RESERVA }}).
+        </p>
+      </section>
+
+      <section v-else class="space-y-3 rounded-xl border border-border bg-card p-4">
         <h2 class="font-medium">Pago</h2>
 
         <!-- Evento: se paga ahí mismo, delante del equipo -->
@@ -856,6 +871,7 @@ useSeoMeta({ title: 'Finalizar pedido' })
         <template v-else-if="formaDePago === 'tarjeta'">
           Pagar {{ formatearEuros(totalCentimos) }} con tarjeta
         </template>
+        <template v-else-if="ocultarPrecios">Reservar</template>
         <template v-else-if="formaDePago === 'pendiente'">
           Reservar sin pagar · {{ formatearEuros(totalCentimos) }}
         </template>

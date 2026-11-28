@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
 
   // El importe se calcula en el servidor releyendo el catálogo. Es lo único que
   // impide que alguien pague 1 céntimo por una sudadera editando la petición.
-  const { totalCentimos, hayReserva } = await prepararLineas(datos.lineas, datos.transporte)
+  const { totalCentimos, hayReserva } = await prepararLineas(datos.lineas, datos.transporte, !datos.evento)
   // Antes de mandar al banco: después, el cobro ya estaría hecho.
   comprobarReserva(hayReserva, datos, 'tarjeta')
 

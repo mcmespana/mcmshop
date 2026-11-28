@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { lineas, abierto, cambiarCantidad, quitar, unidades, totalCentimos, vacio } = useCarrito()
+const { lineas, abierto, cambiarCantidad, quitar, unidades, totalCentimos, vacio, ocultarPrecios } = useCarrito()
 const { modo } = useModo()
 
 const desplegadoMovil = ref(false)
@@ -39,10 +39,15 @@ watch(abierto, (v) => {
 
       <footer v-if="!vacio" class="border-t border-border px-4 py-3">
         <div class="mb-3 flex items-baseline justify-between">
-          <span class="text-sm text-muted-foreground">Total</span>
-          <span class="text-lg font-semibold tabular-nums">{{
-            formatearEuros(totalCentimos)
-          }}</span>
+          <template v-if="ocultarPrecios">
+            <span class="text-sm text-muted-foreground">Reserva, sin pago ahora</span>
+          </template>
+          <template v-else>
+            <span class="text-sm text-muted-foreground">Total</span>
+            <span class="text-lg font-semibold tabular-nums">{{
+              formatearEuros(totalCentimos)
+            }}</span>
+          </template>
         </div>
         <NuxtLink
           to="/checkout"
@@ -93,7 +98,10 @@ watch(abierto, (v) => {
         >
           {{ unidades }}
         </span>
-        <span class="text-sm font-semibold tabular-nums">{{ formatearEuros(totalCentimos) }}</span>
+        <span v-if="!ocultarPrecios" class="text-sm font-semibold tabular-nums">{{
+          formatearEuros(totalCentimos)
+        }}</span>
+        <span v-else class="text-sm font-semibold">Reserva</span>
         <span class="text-xs text-muted-foreground">{{ desplegadoMovil ? 'Ocultar' : 'Ver' }}</span>
       </button>
 

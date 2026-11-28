@@ -93,7 +93,7 @@ function escapar(texto: string): string {
 }
 
 /** Tabla de líneas. Con estilos en línea, que es lo único fiable en correo. */
-function tablaLineas(lineas: LineaCorreo[], totalCentimos: number): string {
+function tablaLineas(lineas: LineaCorreo[], totalCentimos: number, conPrecio = true): string {
   const filas = lineas
     .map(
       (l) => `
@@ -106,9 +106,9 @@ function tablaLineas(lineas: LineaCorreo[], totalCentimos: number): string {
         <td style="padding:8px 0;border-bottom:1px solid #e8e6e1;text-align:center;white-space:nowrap;">
           ${l.cantidad}
         </td>
-        <td style="padding:8px 0;border-bottom:1px solid #e8e6e1;text-align:right;white-space:nowrap;">
+        ${conPrecio ? `<td style="padding:8px 0;border-bottom:1px solid #e8e6e1;text-align:right;white-space:nowrap;">
           ${formatearEuros(l.precioCentimos * l.cantidad)}
-        </td>
+        </td>` : ''}
       </tr>`,
     )
     .join('')
@@ -119,18 +119,18 @@ function tablaLineas(lineas: LineaCorreo[], totalCentimos: number): string {
         <tr style="color:#6b6a66;font-size:12px;text-align:left;">
           <th style="padding-bottom:6px;font-weight:500;">Artículo</th>
           <th style="padding-bottom:6px;font-weight:500;text-align:center;">Uds.</th>
-          <th style="padding-bottom:6px;font-weight:500;text-align:right;">Importe</th>
+          ${conPrecio ? '<th style="padding-bottom:6px;font-weight:500;text-align:right;">Importe</th>' : ''}
         </tr>
       </thead>
       <tbody>${filas}</tbody>
-      <tfoot>
+      ${conPrecio ? `<tfoot>
         <tr>
           <td colspan="2" style="padding-top:12px;font-weight:600;">Total</td>
           <td style="padding-top:12px;text-align:right;font-weight:600;">
             ${formatearEuros(totalCentimos)}
           </td>
         </tr>
-      </tfoot>
+      </tfoot>` : ''}
     </table>`
 }
 
@@ -285,7 +285,7 @@ export function confirmacionCliente(datos: DatosCorreo): Promise<boolean> {
         Hola${datos.cliente.nombre ? ` ${escapar(datos.cliente.nombre.split(' ')[0]!)}` : ''},
         te hemos apuntado esto:
       </p>
-      ${tablaLineas(datos.lineas, datos.totalCentimos)}
+      ${tablaLineas(datos.lineas, datos.totalCentimos, datos.evento !== undefined || !datos.lineas.some((l) => l.reserva))}
       <h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">Cómo te llega</h2>
       <p style="margin:0;line-height:1.5;">${TRANSPORTE[datos.transporte]}</p>
       ${bloqueReserva(datos)}

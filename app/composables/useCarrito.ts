@@ -31,6 +31,7 @@ function claveDe(productoId: string, varianteId: string | null) {
 export function useCarrito() {
   const lineas = useState<LineaCarrito[]>('carrito', () => [])
   const abierto = useState<boolean>('carrito-abierto', () => false)
+  const { evento } = useEvento()
 
   // El carrito vive sólo en el navegador: no hay base de datos en este proyecto.
   onMounted(() => {
@@ -77,7 +78,7 @@ export function useCarrito() {
         cantidad,
         imagen: producto.imagenes[0]?.miniatura ?? null,
         stock: variante?.stock ?? producto.stock,
-        reserva: esReserva(producto, variante?.stock ?? producto.stock),
+        reserva: esReserva(producto, variante?.stock ?? producto.stock, !evento.value),
       })
     }
     abierto.value = true
@@ -107,6 +108,8 @@ export function useCarrito() {
   )
   const vacio = computed(() => lineas.value.length === 0)
   const hayReserva = computed(() => lineas.value.some((l) => l.reserva))
+  /** Online, lo reservado no enseña precio ni se paga por delante. En el puesto sí. */
+  const ocultarPrecios = computed(() => hayReserva.value && !evento.value)
 
   return {
     lineas,
@@ -119,5 +122,6 @@ export function useCarrito() {
     totalCentimos,
     vacio,
     hayReserva,
+    ocultarPrecios,
   }
 }

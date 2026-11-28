@@ -4,6 +4,8 @@ import type { LineaCarrito } from '~/composables/useCarrito'
 const props = defineProps<{ linea: LineaCarrito }>()
 defineEmits<{ cambiar: [cantidad: number]; quitar: [] }>()
 
+const { evento } = useEvento()
+const verPrecio = computed(() => !props.linea.reserva || !!evento.value)
 const subtotal = computed(() => props.linea.precioCentimos * props.linea.cantidad)
 </script>
 
@@ -62,6 +64,6 @@ const subtotal = computed(() => props.linea.precioCentimos * props.linea.cantida
       </div>
     </div>
 
-    <span class="shrink-0 text-sm font-medium tabular-nums">{{ formatearEuros(subtotal) }}</span>
+    <span v-if="verPrecio" class="shrink-0 text-sm font-medium tabular-nums">{{ formatearEuros(subtotal) }}</span>
   </li>
 </template>

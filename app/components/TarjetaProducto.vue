@@ -9,6 +9,7 @@ const props = defineProps<{ producto: ProductoCatalogo; indice?: number }>()
 const retrasoEntrada = `${Math.min(props.indice ?? 0, 12) * 45}ms`
 
 const { anadir } = useCarrito()
+const { evento } = useEvento()
 
 const variante = ref<VarianteCatalogo | null>(null)
 const cantidad = ref(1)
@@ -30,7 +31,7 @@ const esDeDrop = computed(() => drop.value !== null)
 const precio = computed(() => variante.value?.precioCentimos ?? props.producto.precioCentimos)
 const stock = computed(() => variante.value?.stock ?? props.producto.stock)
 /** Sin stock de algo que admite reserva: no es "sin stock", es "reserva". */
-const reserva = computed(() => esReserva(props.producto, stock.value))
+const reserva = computed(() => esReserva(props.producto, stock.value, !evento.value))
 const aviso = computed(() => (reserva.value ? null : textoStock(stock.value)))
 /** El color sale de la variante elegida; la galería lo usa para saltar a su foto. */
 const color = computed(() => variante.value?.opcion ?? null)
@@ -138,9 +139,11 @@ onBeforeUnmount(() => clearTimeout(temporizador))
       </p>
 
       <div class="mt-auto flex items-center justify-between gap-2 pt-1">
-        <span class="text-lg font-semibold tabular-nums">{{ formatearEuros(precio) }}</span>
+        <span v-if="!reserva || evento" class="text-lg font-semibold tabular-nums">{{
+          formatearEuros(precio)
+        }}</span>
 
-        <div class="flex items-center gap-1.5">
+        <div class="ml-auto flex items-center gap-1.5">
           <div class="flex items-center rounded-lg border border-border">
             <button
               type="button"

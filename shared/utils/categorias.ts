@@ -94,9 +94,13 @@ export function esReservable(producto: ConTags): boolean {
 /**
  * ¿Pedir esto ahora es una reserva? Sólo si el producto la admite y no queda
  * stock de lo elegido: si hay en el armario, se vende como cualquier otra cosa.
+ *
+ * Pedido online (`soloReserva`): lo reservable se pide siempre como reserva, haya
+ * stock o no, y sin precio a la vista ni pago por delante: se apunta y el equipo
+ * escribe después. En el puesto y en el TPV se sigue vendiendo lo que hay.
  */
-export function esReserva(producto: ConTags, stock: number): boolean {
-  return esReservable(producto) && stock <= 0
+export function esReserva(producto: ConTags, stock: number, soloReserva = false): boolean {
+  return esReservable(producto) && (soloReserva || stock <= 0)
 }
 
 /** Plazo que prometemos para las reservas. Sale en la tarjeta, el checkout y el correo. */
