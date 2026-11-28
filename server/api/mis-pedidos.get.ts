@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
 
   const pedidos = crudos.map((p) => {
     const estado = traducirEstado(p)
+    const lineas = (p.lines ?? []).filter((l) => l.type !== 'title')
     return {
       id: p.id,
       numero: p.document_number,
@@ -49,6 +50,8 @@ export default defineEventHandler(async (event) => {
       estado: estado.texto,
       tono: estado.tono,
       borrador: p.draft,
+      // Con algo reservado no se enseñan importes: son pedidos sin precio a la vista.
+      sinPrecio: lineas.some((l) => l.type === 'product' && (l.description ?? '').startsWith('RESERVA')),
       totalCentimos: aCentimos(p.total) ?? 0,
       impuestosCentimos: aCentimos(p.tax) ?? 0,
       seguimiento:
@@ -56,8 +59,7 @@ export default defineEventHandler(async (event) => {
           ? { transportista: p.tracking_name, numero: p.tracking_number }
           : null,
       fechaEntrega: p.delivery_date,
-      lineas: (p.lines ?? [])
-        .filter((l) => l.type !== 'title')
+      lineas: lineas
         .map((l) => ({
           nombre: l.name,
           // Sólo en las líneas de producto la descripción es la variante (Holded
@@ -66,6 +68,8 @@ export default defineEventHandler(async (event) => {
           variante: l.type === 'product' ? l.description : null,
           unidades: Number(String(l.units).replace(',', '.')) || 0,
           precioCentimos: aCentimos(l.price) ?? 0,
+          // Las reservas se apuntan con «RESERVA» al principio de la descripción.
+          reserva: l.type === 'product' && (l.description ?? '').startsWith('RESERVA'),
         })),
     }
   })

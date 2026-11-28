@@ -122,7 +122,7 @@ useSeoMeta({ title: 'Mis pedidos' })
             </p>
           </div>
 
-          <span class="shrink-0 font-semibold tabular-nums">
+          <span v-if="!pedido.sinPrecio" class="shrink-0 font-semibold tabular-nums">
             {{ formatearEuros(pedido.totalCentimos) }}
           </span>
           <span
@@ -148,7 +148,7 @@ useSeoMeta({ title: 'Mis pedidos' })
                   {{ linea.variante }}
                 </span>
               </span>
-              <span class="shrink-0 tabular-nums">
+              <span v-if="!pedido.sinPrecio" class="shrink-0 tabular-nums">
                 {{ formatearEuros(linea.precioCentimos * linea.unidades) }}
               </span>
             </li>
