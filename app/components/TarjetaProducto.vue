@@ -30,6 +30,7 @@ const esDeDrop = computed(() => drop.value !== null)
 
 const precio = computed(() => variante.value?.precioCentimos ?? props.producto.precioCentimos)
 const stock = computed(() => variante.value?.stock ?? props.producto.stock)
+const sinPrecioAqui = computed(() => sinPrecio(props.producto, !!evento.value))
 /** Sin stock de algo que admite reserva: no es "sin stock", es "reserva". */
 const reserva = computed(() => esReserva(props.producto, stock.value, !evento.value))
 const aviso = computed(() => (reserva.value ? null : textoStock(stock.value)))
@@ -139,7 +140,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
       </p>
 
       <div class="mt-auto flex items-center justify-between gap-2 pt-1">
-        <span v-if="!reserva || evento" class="text-lg font-semibold tabular-nums">{{
+        <span v-if="!sinPrecioAqui" class="text-lg font-semibold tabular-nums">{{
           formatearEuros(precio)
         }}</span>
 

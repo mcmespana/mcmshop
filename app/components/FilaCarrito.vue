@@ -5,7 +5,7 @@ const props = defineProps<{ linea: LineaCarrito }>()
 defineEmits<{ cambiar: [cantidad: number]; quitar: [] }>()
 
 const { evento } = useEvento()
-const verPrecio = computed(() => !props.linea.reserva || !!evento.value)
+const verPrecio = computed(() => !props.linea.sinPrecio || !!evento.value)
 const subtotal = computed(() => props.linea.precioCentimos * props.linea.cantidad)
 </script>
 

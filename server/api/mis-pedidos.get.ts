@@ -50,8 +50,8 @@ export default defineEventHandler(async (event) => {
       estado: estado.texto,
       tono: estado.tono,
       borrador: p.draft,
-      // Con algo reservado no se enseñan importes: son pedidos sin precio a la vista.
-      sinPrecio: lineas.some((l) => l.type === 'product' && (l.description ?? '').startsWith('RESERVA')),
+      // Con algún drop no se enseñan importes.
+      sinPrecio: lineas.some((l) => l.type === 'product' && (l.description ?? '').startsWith('DROP')),
       totalCentimos: aCentimos(p.total) ?? 0,
       impuestosCentimos: aCentimos(p.tax) ?? 0,
       seguimiento:
@@ -68,8 +68,8 @@ export default defineEventHandler(async (event) => {
           variante: l.type === 'product' ? l.description : null,
           unidades: Number(String(l.units).replace(',', '.')) || 0,
           precioCentimos: aCentimos(l.price) ?? 0,
-          // Las reservas se apuntan con «RESERVA» al principio de la descripción.
-          reserva: l.type === 'product' && (l.description ?? '').startsWith('RESERVA'),
+          // Los drops online se apuntan con «DROP» al principio de la descripción.
+          reserva: l.type === 'product' && (l.description ?? '').startsWith('DROP'),
         })),
     }
   })

@@ -18,7 +18,7 @@ import {
 } from './holded'
 import type { LineaCorreo } from './correo'
 import { EVENTOS } from '../../shared/utils/eventos'
-import { esReserva, PLAZO_RESERVA } from '../../shared/utils/categorias'
+import { esDrop, esReserva, PLAZO_RESERVA } from '../../shared/utils/categorias'
 import { siguienteNumero } from './numeracion'
 
 export interface LineaSolicitada {
@@ -153,7 +153,8 @@ export async function prepararLineas(
     const reserva = esReserva(producto, variante?.stock ?? producto.stock, soloReserva)
     if (reserva) hayReserva = true
     // En la línea, para que al encargar se vea de un vistazo qué hay que pedir.
-    const descripcion = [reserva ? 'RESERVA' : null, variante?.etiqueta ?? null]
+    // Los drops online llevan «DROP» delante: «Mis pedidos» lo usa para no enseñar importes.
+    const descripcion = [soloReserva && esDrop(producto) ? 'DROP' : null, reserva ? 'RESERVA' : null, variante?.etiqueta ?? null]
       .filter(Boolean)
       .join(' · ')
 
@@ -175,6 +176,7 @@ export async function prepararLineas(
       cantidad: pedida.cantidad,
       precioCentimos: precio,
       reserva,
+      sinPrecio: soloReserva && esDrop(producto),
     })
   }
 

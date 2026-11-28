@@ -25,6 +25,8 @@ export interface LineaCorreo {
   precioCentimos: number
   /** Se encarga aparte porque no había stock. */
   reserva?: boolean
+  /** Drop online: el correo al cliente no lleva importes. */
+  sinPrecio?: boolean
 }
 
 export interface DatosCorreo {
@@ -285,7 +287,7 @@ export function confirmacionCliente(datos: DatosCorreo): Promise<boolean> {
         Hola${datos.cliente.nombre ? ` ${escapar(datos.cliente.nombre.split(' ')[0]!)}` : ''},
         te hemos apuntado esto:
       </p>
-      ${tablaLineas(datos.lineas, datos.totalCentimos, datos.evento !== undefined || !datos.lineas.some((l) => l.reserva))}
+      ${tablaLineas(datos.lineas, datos.totalCentimos, datos.evento !== undefined || !datos.lineas.some((l) => l.sinPrecio))}
       <h2 style="margin:24px 0 6px;font-size:15px;font-weight:600;">Cómo te llega</h2>
       <p style="margin:0;line-height:1.5;">${TRANSPORTE[datos.transporte]}</p>
       ${bloqueReserva(datos)}

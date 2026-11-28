@@ -20,6 +20,8 @@ export interface LineaCarrito {
    * momento. Opcional porque los carritos guardados antes no lo traen.
    */
   reserva?: boolean
+  /** Drop MCM pedido online: no se enseña su precio. */
+  sinPrecio?: boolean
 }
 
 const CLAVE_ALMACEN = 'mcm_carrito_v1'
@@ -79,6 +81,7 @@ export function useCarrito() {
         imagen: producto.imagenes[0]?.miniatura ?? null,
         stock: variante?.stock ?? producto.stock,
         reserva: esReserva(producto, variante?.stock ?? producto.stock, !evento.value),
+        sinPrecio: sinPrecio(producto, !!evento.value),
       })
     }
     abierto.value = true
@@ -108,8 +111,8 @@ export function useCarrito() {
   )
   const vacio = computed(() => lineas.value.length === 0)
   const hayReserva = computed(() => lineas.value.some((l) => l.reserva))
-  /** Online, lo reservado no enseña precio ni se paga por delante. En el puesto sí. */
-  const ocultarPrecios = computed(() => hayReserva.value && !evento.value)
+  /** Con algún Drop en el carrito no hay total ni pago por delante (sólo online). */
+  const ocultarPrecios = computed(() => !evento.value && lineas.value.some((l) => l.sinPrecio))
 
   return {
     lineas,
